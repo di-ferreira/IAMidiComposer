@@ -1,0 +1,114 @@
+# AI MIDI Composer — CI
+#
+# Stages: configure (CMake), build engine_cpp & plugin (VST3, Linux for now),
+#         install Go, build ACE, run GoogleTest, run Go tests.
+#         Benchmarks are run separately on release-tagged commits.
+name: CI
+
+on:
+  push:
+    branches: [main, release/*]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ───────────────────────────────────────────────────────────
+  engine_cpp:
+    name: Engine (C++) build + tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: Install toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build clang clang-format clang-tidy
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DAIMIDI_BUILD_PLUGIN=OFF \
+            -DAIMIDI_BUILD_ENGINE_CPP=ON \
+            -DAIMIDI_BUILD_TESTS=ON \
+            -DAIMIDI_ENABLE_ASAN=ON \
+            -DAIMIDI_ENABLE_UBSAN=ON
+      - name: Build
+        run: cmake --build build --parallel 2
+      - name: Test
+        working-directory: build
+        run: ctest --output-on-failure
+
+  # ───────────────────────────────────────────────────────────
+  plugin:
+    name: Plugin (VST3) build
+    runs-on: ubuntu-22.04
+    continue-on-error: true   # scaffolding: enabled once JUCE build is wired
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build clang pkg-config \
+            libasound2-dev libx11-dev libxcomposite-dev libxcursor-dev \
+            libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
+            libfreetype6-dev libgl1-mesa-dev libglu1-mesa-dev
+      - name: Configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DAIMIDI_BUILD_PLUGIN=ON \
+            -DAIMIDI_BUILD_ENGINE_CPP=OFF
+      - name: Build
+        run: cmake --build build --parallel 2
+
+  # ───────────────────────────────────────────────────────────
+  engine_go:
+    name: ACE (Go) build + tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+      - name: Build
+        working-directory: engine/go
+        run: go build ./...
+      - name: Vet
+        working-directory: engine/go
+        run: go vet ./...
+      - name: Test
+        working-directory: engine/go
+        run: go test ./... -race -shuffle=on
+
+  # ───────────────────────────────────────────────────────────
+  lint:
+    name: Format check (C++ / Go)
+    runs-on: ubuntu-22.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang-format & go
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clang-format
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: clang-format check (C++)
+        run: |
+          find engine/cpp plugin -name '*.?pp' -print0 \
+            | xargs -0 -r -n1 clang-format -i --dry-run --Werror
+      - name: gofmt / goimports check (Go)
+        working-directory: engine/go
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest
+          test -z "$(gofmt -s -l . | tee /dev/stderr)"
+          test -z "$(find . -name '*.go' -not -path './internal/proto/*' \
+            | xargs -r $(go env GOPATH)/bin/goimports -l | tee /dev/stderr)"

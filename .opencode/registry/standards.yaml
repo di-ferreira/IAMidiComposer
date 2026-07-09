@@ -1,0 +1,111 @@
+# Standards Registry — AI MIDI Composer
+# Cataloga os documentos de standards do projeto (em standards/).
+
+version: 1
+schema: aimidi.standard.registry/1
+
+# Padrao:
+#   - id:           slug kebab-case
+#     name:         nome exibivel
+#     description:  curta
+#     file:         standards/<id>.md
+#     audience:     all | cpp | go | plugin | qa | doc | sec | devops
+#     references:
+#       - <standard id>
+#     blocked_by_default: true  # se PR viole, авто-rejected
+
+standards:
+  - id: architecture
+    name: Architecture
+    description: Princípios arquiteturais (Clean Arch, SOLID, DI).
+    file: standards/architecture.md
+    audience: all
+    references: [coding-style]
+    blocked_by_default: true
+
+  - id: coding-style
+    name: Coding Style
+    description: Estilo de código (naming, headers, format).
+    file: standards/coding_style.md
+    audience: all
+    blocked_by_default: true
+
+  - id: cpp-guidelines
+    name: C++ Guidelines
+    description: Regras C++20 do projeto.
+    file: standards/cpp_guidelines.md
+    audience: cpp
+    references: [coding-style, realtime-audio]
+    blocked_by_default: true
+
+  - id: go-guidelines
+    name: Go Guidelines
+    description: Regras Go do projeto.
+    file: standards/go_guidelines.md
+    audience: go
+    references: [coding-style]
+    blocked_by_default: true
+
+  - id: realtime-audio
+    name: Realtime Audio
+    description: Invioláveis da Audio Thread.
+    file: standards/realtime_audio.md
+    audience: plugin
+    blocked_by_default: true
+
+  - id: performance
+    name: Performance
+    description: Critérios de bench e regressão em PRs.
+    file: standards/performance.md
+    audience: all
+    blocked_by_default: true
+
+  - id: security
+    name: Security
+    description: Threat model e regras offline.
+    file: standards/security.md
+    audience: sec
+    blocked_by_default: true
+
+  - id: testing
+    name: Testing
+    description: Estratégia e cobertura mínima.
+    file: standards/testing.md
+    audience: qa
+    blocked_by_default: true
+
+  - id: branching
+    name: Branching
+    description: Trunk-based + release branches.
+    file: standards/branching.md
+    audience: all
+    blocked_by_default: false
+
+  - id: commits
+    name: Commits
+    description: Conventional Commits.
+    file: standards/commits.md
+    audience: all
+    blocked_by_default: true
+
+  - id: pull-request
+    name: Pull Request
+    description: Template e checklist de PR.
+    file: standards/pull_request.md
+    audience: all
+    references: [review, commits]
+    blocked_by_default: true
+
+  - id: review
+    name: Code Review
+    description: Critérios de code review.
+    file: standards/review.md
+    audience: all
+    blocked_by_default: false
+
+  - id: documentation
+    name: Documentation
+    description: Padrões de documentação.
+    file: standards/documentation.md
+    audience: doc
+    blocked_by_default: true

@@ -1,0 +1,118 @@
+// =================================================================
+// AI MIDI Composer — gRPC contract (v1)
+// Plugin <-> AI Composition Engine (ACE)
+// =================================================================
+syntax = "proto3";
+
+package aimidi.v1;
+
+option go_package = "aimidi.composer/ace/internal/proto/aimidi/v1;aimidiv1";
+
+// -----------------------------------------------------------------
+// Workflow Request / Response envelopes
+// -----------------------------------------------------------------
+service CompositionService {
+  // Workflow 1: New Composition from prompt
+  rpc NewComposition(NewCompositionRequest) returns (CompositionResponse);
+  // Workflow 4: Continue Composition
+  rpc ContinueComposition(ContinueCompositionRequest) returns (CompositionResponse);
+  // Workflow 6: Generate Variations
+  rpc GenerateVariations(GenerateVariationsRequest) returns (CompositionResponse);
+}
+
+// -----------------------------------------------------------------
+// Music Blueprint (consumed by Music Theory Engine via ace-internal)
+// -----------------------------------------------------------------
+message MusicBlueprint {
+  int64  seed        = 1;  // reproducibility
+  string root_key    = 2;  // "C", "C#", "Db", ...
+  string scale        = 3;  // "major", "minor", "dorian", ...
+  int32  bpm          = 4;
+  int32  ppq          = 5;  // 480 default
+  repeated string genres = 6;
+  Energy energy       = 7;
+  Timeline timeline   = 8;
+  repeated Instrument instruments = 9;
+}
+
+message Energy {
+  enum Level { UNSPECIFIED = 0; LOW = 1; MID = 2; HIGH = 3; }
+  Level level = 1;
+  float density = 2;       // 0..1
+  float complexity = 3;   // 0..1
+}
+
+message Mood {
+  string label             = 1;  // ex.: "melancholic"
+  float valence            = 2;  // 0..1
+  float arousal            = 3;  // 0..1
+  float dominance          = 4;  // 0..1
+}
+
+message Timeline {
+  repeated Section sections = 1;
+}
+
+message Section {
+  string name             = 1;  // "intro", "verse", "chorus", ...
+  int32  start_bar        = 2;
+  int32  bars              = 3;
+  Energy energy           = 4;
+  repeated InstrumentRole instruments = 5;
+}
+
+message Instrument {
+  string name              = 1;
+  string role              = 2;  // "lead"|"comping"|"rhythm"|"bass"|"drum"|"pad"
+  uint32 channel          = 3;  // 0..15
+  uint32 program          = 4;  // GM program
+}
+
+message InstrumentRole {
+  string          instrument_name = 1;
+  string          role            = 2;  // "lead"|"comping"|...
+}
+
+// -----------------------------------------------------------------
+// Workflows
+// -----------------------------------------------------------------
+message NewCompositionRequest {
+  int64  seed        = 1;
+  string prompt      = 2;  // user natural language
+  string style_hint  = 3;
+  int32  target_seconds = 4;
+}
+
+message ContinueCompositionRequest {
+  int64 seed                    = 1;
+  string shared_context_id      = 2;
+  int32  from_bar               = 3;
+  int32  bars_to_append         = 4;
+}
+
+message GenerateVariationsRequest {
+  int64 base_seed               = 1;
+  string shared_context_id      = 2;
+  int32  variation_count        = 3;
+  int64  seed_seed_delta        = 4;
+}
+
+// -----------------------------------------------------------------
+// Response
+// -----------------------------------------------------------------
+message CompositionResponse {
+  bool   success                    = 1;
+  string error                      = 2;  // empty on success
+  bytes  smf_midi                   = 3;  // SMF1 Standard MIDI File (one trk/instr)
+  repeated MicroEvent live_events   = 4;  // buffer to push to Plugin
+  string shared_context_id          = 5;
+}
+
+message MicroEvent {
+  uint32 tick_on       = 1;
+  uint32 tick_off      = 2;
+  uint32 channel       = 3;
+  uint32 note          = 4;
+  uint32 velocity      = 5;
+  uint32 articulation  = 6;
+}

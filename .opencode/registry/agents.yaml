@@ -1,0 +1,287 @@
+# Agent Registry — AI MIDI Composer
+# Metadados descritivos dos agentes PRIMARIOS do projeto.
+# Complementar ao `.opencode/agents/*.md` (fonte canonica de prompt/permissions).
+# Ferramentas externas podem consultar este YAML para descobrir responsaveis.
+
+version: 1
+schema: aimidi.agent.registry/1
+
+# Padrao de um registro:
+#   - id:          slug kebab-case (== nome do arquivo .md sem extensao)
+#     name:        nome curto de exibicao
+#     role:        lideranca | engenharia
+#     mode:        primary
+#     description: descricao curta (texto da descrição do agente)
+#     responsibilities:
+#       - ...
+#     dependencies:
+#       - <outro agent id>
+#     required_skills:
+#       - <skill name>
+#     activation_criteria:
+#       - quando usar
+#     file: .opencode/agents/<id>.md
+
+agents:
+  - id: cto
+    name: CTO
+    role: lideranca
+    mode: primary
+    description: Decisoes arquiteturais globais e prioridades do projeto.
+    responsibilities:
+      - Aprovar/rejeitar ADRs
+      - Decisao final em conflitos arquiteturais
+      - Priorizar sprints
+    dependencies: []
+    required_skills: []
+    activation_criteria:
+      - Conflito entre engenheiros sobre arquitetura
+      - Análise de trade-offs grande impacto
+      - Aprovação de novo modulo com impacto arq
+
+  - id: software-architect
+    name: Software Architect
+    role: lideranca
+    mode: primary
+    description: Design modular, contratos gRPC/protobuf, Clean Architecture e SOLID.
+    responsibilities:
+      - Definir contratos proto
+      - Aprovar interfaces publicas
+      - Garantir DI e Clean Arch
+    dependencies:
+      - performance-engineer
+      - backend-engineer
+    required_skills:
+      - protobuf-basics
+      - grpc-cpp
+      - vst3-format
+    activation_criteria:
+      - Novo modulo cruzando camadas
+      - Novo servico gRPC
+      - Refactor de interface publica
+
+  - id: project-manager
+    name: Project Manager
+    role: lideranca
+    mode: primary
+    description: Decompor roadmap em tarefas; manter DoD; coordenar engenheiros.
+    dependencies:
+      - cto
+      - software-architect
+    required_skills: []
+    activation_criteria:
+      - Planejar proxima sprint
+      - Quebrar epic em tarefas
+
+  - id: performance-engineer
+    name: Performance Engineer
+    role: lideranca
+    mode: primary
+    description: Cache, SIMD, lock-free, arenas; rejeita codigo lento; exige bench.
+    responsibilities:
+      - Revisar hot paths
+      - Aprovar algoritmos antes de merge
+      - Caçar alocacao/lock em realtime
+    required_skills:
+      - cache-optimization
+      - lock-free
+      - simd
+      - arena-allocator
+      - object-pool
+      - profiling
+      - multithreading
+    activation_criteria:
+      - PR que altera hot path / processBlock / engine gen
+      - Suspeita de regressao de perf
+      - Planejamento de nova engine musical
+
+  - id: documentation-engineer
+    name: Documentation Engineer
+    role: lideranca
+    mode: primary
+    description: Manter ADRs, roadmap, diagramas e padroes de doc atualizados.
+    required_skills:
+      - adr-format
+      - doc-standards
+      - changelog
+    activation_criteria:
+      - Feature groom sem doc atualizada
+      - Aprecacao de ADR novo
+      - Release notes / changelog
+
+  # Engenharia primarios abaixo copiam os campos principais do subagent-subagentes;
+
+  - id: backend-engineer
+    name: Backend Engineer
+    role: engenharia
+    mode: primary
+    description: ACE em Go (gRPC server, workflow, SQLite).
+    required_skills:
+      - idiomatic-go
+      - go-context
+      - go-modules
+      - sqlite-go
+      - grpc-cpp
+      - protobuf-basics
+    activation_criteria:
+      - Handler gRPC novo
+      - Migration SQLite
+      - Workflow manager
+
+  - id: plugin-engineer
+    name: Plugin Engineer
+    role: engenharia
+    mode: primary
+    description: VST3 em C++20/JUCE (UI, piano roll, MIDI out, gRPC client).
+    required_skills:
+      - juce-plugin-processor
+      - juce-plugin-editor
+      - juce-valuetree
+      - juce-parameters
+      - juce-realtime
+      - juce-midi
+      - vst3-format
+      - clap-format
+      - grpc-cpp
+      - lock-free
+    activation_criteria:
+      - UI/preview/piano roll
+      - MIDI out path realtime
+      - Plugin state save/load
+
+  - id: dsp-engineer
+    name: DSP Engineer
+    role: engenharia
+    mode: primary
+    description: DSP (FFT/filters/windows/onset) para preview e Audio Analysis.
+    required_skills:
+      - dsp-fft
+      - dsp-filters
+      - dsp-windows
+      - dsp-onset-detection
+      - simd
+      - lock-free
+      - profiling
+    activation_criteria:
+      - Preview interno MIDI->audio
+      - BPM/beat/chord detection
+      - Improving realtime constraints em DSE
+
+  - id: music-theory-engineer
+    name: Music Theory Engineer
+    role: engenharia
+    mode: primary
+    description: Music Theory Engine deterministica - toda musica nasce aqui.
+    required_skills:
+      - theory-harmony
+      - theory-scales
+      - theory-modes
+      - theory-counterpoint
+      - theory-voice-leading
+      - theory-rhythm
+      - theory-orchestration
+      - theory-chord-progression
+      - midi-event
+      - midi-format
+      - midi-smf
+      - arena-allocator
+      - object-pool
+      - simd
+      - cache-optimization
+    dependencies:
+      - harmony-engine
+      - chord-engine
+      - melody-engine
+      - rhythm-engine
+      - bass-engine
+      - drum-engine
+      - guitar-engine
+      - piano-engine
+      - strings-engine
+      - orchestration-engine
+      - humanization-engine
+      - midi-renderer
+    activation_criteria:
+      - Nova feature musical
+      - Bug determinismo / golden variance
+      - Adicionar novo instrumento generador
+
+  - id: ai-engineer
+    name: AI Engineer
+    role: engenharia
+    mode: primary
+    description: Musical Intelligence via llama.cpp/ONNX local; nunca gera MIDI direto.
+    required_skills:
+      - llama-cpp
+      - onnx-runtime
+      - llm-prompting
+      - blueprint-schema
+      - model-safety
+    dependencies:
+      - prompt-interpreter
+      - style-detection
+      - blueprint-generator
+      - arrangement-planner
+      - timeline-planner
+      - workflow-manager
+    activation_criteria:
+      - Interpretacao de prompt novo / classe genero
+      - Schema Blueprint mudanca
+      - Cache/prompt de LLM
+
+  - id: database-engineer
+    name: Database Engineer
+    role: engenharia
+    mode: primary
+    description: SQLite -- Shared Context, presets, patterns, migrations.
+    required_skills:
+      - sqlite-go
+      - idiomatic-go
+    activation_criteria:
+      - Nova entidade SQLite
+      - Migration
+      - Refactor de store
+
+  - id: security-engineer
+    name: Security Engineer
+    role: engenharia
+    mode: primary
+    description: Threat model, validacao de entrada, deps audit, model safety.
+    required_skills:
+      - input-validation
+      - model-safety
+      - dependencies-audit
+      - fuzz-testing
+    activation_criteria:
+      - Parser/IO novo
+      - Dependencia nova
+      - Fetch de modelos IA
+
+  - id: qa-engineer
+    name: QA Engineer
+    role: engenharia
+    mode: primary
+    description: Estrategia de testes, golden MIDI, fuzz, CI gates.
+    required_skills:
+      - googletest
+      - go-testing
+      - golden-tests
+      - fuzz-testing
+    activation_criteria:
+      - Definir minima de cobertura
+      - Novo gate CI
+      - Revisao de PR critico
+
+  - id: devops-engineer
+    name: DevOps Engineer
+    role: engenharia
+    mode: primary
+    description: CI/CD GitHub Actions, build CMake/Go, releases multi-OS.
+    required_skills:
+      - go-modules
+      - dependencies-audit
+      - profiling
+    activation_criteria:
+      - Build matrix OSes
+      - Novo job de CI
+      - Release tag

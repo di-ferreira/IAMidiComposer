@@ -1,0 +1,277 @@
+# Skill Registry — AI MIDI Composer
+# Metadados descritivos das SKILLS do projeto.
+# Complementar ao `.opencode/skills/<name>/SKILL.md` (fonte canonica do conteúdo).
+# Ferramentas externas podem descobrir quais skills existem e suas categorias.
+
+version: 1
+schema: aimidi.skill.registry/1
+
+# Padrao de um registro:
+#   - id:           slug kebab-case (== nome da pasta em .opencode/skills/)
+#     name:         nome curto
+#     category:     cpp | go | juce | juce | vst3 | clap | grpc | protobuf | sqlite | dsp | midi | theory | llama_cpp | onnx | performance | testing | security | documentation
+#     description:  curta
+#     file:         .opencode/skills/<id>/SKILL.md
+#     required_by_agents:
+#       - <agent id>
+#     required_by_subagents:
+#       - <subagent id>
+
+skills:
+  # Performance (dirige Performance Engineer)
+  - id: cache-optimization
+    category: performance
+    required_by_agents: [performance-engineer, dsp-engineer, music-theory-engineer]
+
+  - id: lock-free
+    category: performance
+    required_by_agents: [performance-engineer, plugin-engineer, dsp-engineer]
+    required_by_subagents: [midi-renderer]
+
+  - id: simd
+    category: performance
+    required_by_agents: [performance-engineer, dsp-engineer, music-theory-engineer]
+
+  - id: multithreading
+    category: performance
+    required_by_agents: [performance-engineer, plugin-engineer]
+
+  - id: arena-allocator
+    category: performance
+    required_by_agents: [performance-engineer, music-theory-engineer]
+    required_by_subagents: [harmony-engine, chord-engine]
+
+  - id: object-pool
+    category: performance
+    required_by_agents: [performance-engineer, plugin-engineer]
+
+  - id: profiling
+    category: performance
+    required_by_agents: [performance-engineer, devops-engineer]
+
+  # C++ modern
+  - id: modern-cpp
+    category: cpp
+    required_by_agents: [plugin-engineer, dsp-engineer, music-theory-engineer]
+
+  - id: cpp-memory-management
+    category: cpp
+    required_by_agents: [plugin-engineer, music-theory-engineer]
+
+  - id: cpp-templates
+    category: cpp
+
+  - id: cpp-move-semantics
+    category: cpp
+    required_by_agents: [plugin-engineer]
+
+  - id: cpp-constexpr
+    category: cpp
+    required_by_agents: [music-theory-engineer]
+
+  - id: cpp-coroutines
+    category: cpp
+
+  # JUCE
+  - id: juce-plugin-processor
+    category: juce
+    required_by_agents: [plugin-engineer]
+
+  - id: juce-plugin-editor
+    category: juce
+    required_by_agents: [plugin-engineer]
+
+  - id: juce-valuetree
+    category: juce
+    required_by_agents: [plugin-engineer]
+
+  - id: juce-parameters
+    category: juce
+    required_by_agents: [plugin-engineer]
+
+  - id: juce-realtime
+    category: juce
+    required_by_agents: [plugin-engineer]
+
+  - id: juce-midi
+    category: juce
+    required_by_agents: [plugin-engineer]
+
+  # Formats
+  - id: vst3-format
+    category: vst3
+    required_by_agents: [plugin-engineer]
+
+  - id: clap-format
+    category: clap
+    required_by_agents: [plugin-engineer]
+
+  - id: grpc-cpp
+    category: grpc
+    required_by_agents: [plugin-engineer, software-architect]
+
+  - id: protobuf-basics
+    category: protobuf
+    required_by_agents: [software-architect, ai-engineer]
+    required_by_subagents: [blueprint-generator]
+
+  - id: sqlite-go
+    category: sqlite
+    required_by_agents: [database-engineer, backend-engineer]
+
+  # DSP
+  - id: dsp-fft
+    category: dsp
+    required_by_agents: [dsp-engineer]
+    required_by_subagents: [tempo-detection, key-detection, chord-detection]
+
+  - id: dsp-filters
+    category: dsp
+    required_by_agents: [dsp-engineer]
+
+  - id: dsp-windows
+    category: dsp
+    required_by_agents: [dsp-engineer]
+    required_by_subagents: [chord-detection]
+
+  - id: dsp-onset-detection
+    category: dsp
+    required_by_agents: [dsp-engineer]
+    required_by_subagents: [tempo-detection, beat-detection]
+
+  # MIDI
+  - id: midi-format
+    category: midi
+    required_by_agents: [music-theory-engineer, plugin-engineer]
+    required_by_subagents: [midi-renderer]
+
+  - id: midi-smf
+    category: midi
+    required_by_subagents: [midi-renderer]
+
+  - id: midi-gm-mapping
+    category: midi
+    required_by_subagents: [drum-engine, instrument-mapper]
+
+  - id: midi-event
+    category: midi
+    required_by_agents: [music-theory-engineer]
+    required_by_subagents: [midi-renderer]
+
+  # Music Theory (essencial)
+  - id: theory-harmony
+    category: theory
+    required_by_agents: [music-theory-engineer]
+    required_by_subagents: [harmony-engine, chord-engine, melody-engine, bass-engine]
+
+  - id: theory-scales
+    category: theory
+    required_by_agents: [music-theory-engineer]
+    required_by_subagents: [melody-engine]
+
+  - id: theory-modes
+    category: theory
+    required_by_agents: [music-theory-engineer]
+    required_by_subagents: [melody-engine]
+
+  - id: theory-counterpoint
+    category: theory
+    required_by_agents: [music-theory-engineer]
+    required_by_subagents: [strings-engine]
+
+  - id: theory-voice-leading
+    category: theory
+    required_by_agents: [music-theory-engineer]
+    required_by_subagents: [chord-engine, bass-engine, piano-engine, strings-engine]
+
+  - id: theory-rhythm
+    category: theory
+    required_by_agents: [music-theory-engineer]
+    required_by_subagents: [rhythm-engine, bass-engine, drum-engine, guitar-engine, piano-engine, humanization-engine]
+
+  - id: theory-orchestration
+    category: theory
+    required_by_agents: [music-theory-engineer]
+    required_by_subagents: [orchestration-engine, strings-engine]
+
+  - id: theory-chord-progression
+    category: theory
+    required_by_agents: [music-theory-engineer]
+    required_by_subagents: [harmony-engine]
+
+  # IA / MI
+  - id: llama-cpp
+    category: llama_cpp
+    required_by_agents: [ai-engineer]
+    required_by_subagents: [prompt-interpreter]
+
+  - id: onnx-runtime
+    category: onnx
+    required_by_agents: [ai-engineer]
+    required_by_subagents: [style-detection]
+
+  - id: llm-prompting
+    category: llama_cpp
+    required_by_agents: [ai-engineer]
+    required_by_subagents: [prompt-interpreter, style-detection]
+
+  - id: blueprint-schema
+    category: protobuf
+    required_by_agents: [ai-engineer, software-architect]
+    required_by_subagents: [blueprint-generator]
+
+  - id: model-safety
+    category: security
+    required_by_agents: [security-engineer, ai-engineer]
+
+  # Go
+  - id: idiomatic-go
+    category: go
+    required_by_agents: [backend-engineer, database-engineer]
+
+  - id: go-context
+    category: go
+    required_by_agents: [backend-engineer]
+
+  - id: go-modules
+    category: go
+    required_by_agents: [backend-engineer, devops-engineer]
+
+  # Testing
+  - id: googletest
+    category: testing
+    required_by_agents: [qa-engineer, music-theory-engineer]
+
+  - id: go-testing
+    category: testing
+    required_by_agents: [qa-engineer, backend-engineer]
+
+  - id: golden-tests
+    category: testing
+    required_by_agents: [qa-engineer, music-theory-engineer]
+
+  - id: fuzz-testing
+    category: testing
+    required_by_agents: [qa-engineer, security-engineer]
+
+  # Security
+  - id: input-validation
+    category: security
+    required_by_agents: [security-engineer]
+
+  - id: dependencies-audit
+    category: security
+    required_by_agents: [security-engineer, devops-engineer]
+
+  # Documentation
+  - id: adr-format
+    category: documentation
+    required_by_agents: [documentation-engineer, software-architect]
+
+  - id: doc-standards
+    category: documentation
+    required_by_agents: [documentation-engineer]
+
+  - id: changelog
+    category: documentation
+    required_by_agents: [documentation-engineer]

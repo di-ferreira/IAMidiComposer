@@ -1,0 +1,333 @@
+# SubAgent Registry — AI MIDI Composer
+# Metadados dos SUBAGENTES (mode: subagent). Complementar ao .opencode/agents/*.md.
+
+version: 1
+schema: aimidi.subagent.registry/1
+
+# Padrao de um registro:
+#   - id:           slug kebab-case
+#     name:         nome curto
+#     domain:       mte | mi | audio | instrument
+#     mode:         subagent
+#     description:  curta
+#     dependencies:
+#       - <outro subagent id ou agente>
+#     required_skills:
+#       - <skill name>
+#     activation_criteria:
+#       - quando ativar
+
+subagents:
+  # ─────────────────────────────────────────────────────────
+  # Music Theory Engine (MTE) - composicao deterministica
+  # ─────────────────────────────────────────────────────────
+  - id: harmony-engine
+    name: Harmony Engine
+    domain: mte
+    description: Progressoes/cadencias/substituicoes harmonicas.
+    dependencies: []
+    required_skills:
+      - theory-harmony
+      - theory-chord-progression
+      - arena-allocator
+    activation_criteria:
+      - Gerar progressao harmonica para secao
+      - Modulacao/substituicao
+
+  - id: chord-engine
+    name: Chord Engine
+    domain: mte
+    description: Voicings concretos a partir de harmonia simbolica + voice leading.
+    dependencies:
+      - harmony-engine
+    required_skills:
+      - theory-voice-leading
+      - theory-harmony
+      - arena-allocator
+    activation_criteria:
+      - Converter simbolo -> MIDI de acorde
+      - Voice leading entre compassos
+
+  - id: melody-engine
+    name: Melody Engine
+    domain: mte
+    description: Linhas melodicas coerentes com harmonia e estilo.
+    dependencies:
+      - harmony-engine
+      - rhythm-engine
+    required_skills:
+      - theory-scales
+      - theory-modes
+    activation_criteria:
+      - Gerar melodia sobre acordes
+      - Motivo + desenvolvimento
+
+  - id: rhythm-engine
+    name: Rhythm Engine
+    domain: mte
+    description: Grid ritmico por compasso e por instrumento.
+    dependencies: []
+    required_skills:
+      - theory-rhythm
+    activation_criteria:
+      - Gerar padrao ritmico
+      - Poliritmia controlada
+
+  - id: bass-engine
+    name: Bass Engine
+    domain: mte
+    description: Linhas de baixo por genero (walking, root, ostinato).
+    dependencies:
+      - harmony-engine
+      - rhythm-engine
+    required_skills:
+      - theory-voice-leading
+      - theory-rhythm
+    activation_criteria:
+      - Gerar parte de baixo
+
+  - id: drum-engine
+    name: Drum Engine
+    domain: mte
+    description: Grooves de bateria por genero com ghost/fills.
+    dependencies:
+      - rhythm-engine
+    required_skills:
+      - theory-rhythm
+      - midi-gm-mapping
+    activation_criteria:
+      - Gerar bateria para secao
+      - Fills em transicao
+
+  - id: guitar-engine
+    name: Guitar Engine
+    domain: mte
+    description: Guitarra com strumming/power chords/arpegios/articulacoes.
+    dependencies:
+      - harmony-engine
+      - rhythm-engine
+    required_skills:
+      - theory-rhythm
+      - theory-voice-leading
+    activation_criteria:
+      - Gerar parte de guitarra
+
+  - id: piano-engine
+    name: Piano Engine
+    domain: mte
+    description: Piano duas maos, comping, lead, pedais.
+    dependencies:
+      - harmony-engine
+      - rhythm-engine
+    required_skills:
+      - theory-voice-leading
+      - theory-rhythm
+    activation_criteria:
+      - Gerar parte de piano
+
+  - id: strings-engine
+    name: Strings Engine
+    domain: mte
+    description: Secao de cordas com divisi, dinamica e articulacoes.
+    dependencies:
+      - harmony-engine
+      - rhythm-engine
+      - orchestration-engine
+    required_skills:
+      - theory-voice-leading
+      - theory-orchestration
+    activation_criteria:
+      - Gerar parte de cordas
+
+  - id: orchestration-engine
+    name: Orchestration Engine
+    domain: mte
+    description: Distribuicao de material entre instrumentos (regsitro/dbl/color).
+    dependencies: []
+    required_skills:
+      - theory-orchestration
+    activation_criteria:
+      - Orquestrar arranjo existente
+      - Distribuir vozes entre VSTis disponiveis
+
+  - id: humanization-engine
+    name: Humanization Engine
+    domain: mte
+    description: Microvariacoes timing/velocity reprodutiveis por seed.
+    dependencies:
+      - rhythm-engine
+    required_skills:
+      - theory-rhythm
+    activation_criteria:
+      - Aplicar humanizacao pos-geracao
+
+  - id: midi-renderer
+    name: MIDI Renderer
+    domain: mte
+    description: Converte events em bytes MIDI (SMF) ou eventos live.
+    dependencies: []
+    required_skills:
+      - midi-format
+      - midi-smf
+      - midi-event
+      - midi-gm-mapping
+    activation_criteria:
+      - Renderizar projeto para SMF export
+      - Push para Plugin gRPC buffer
+
+  # ─────────────────────────────────────────────────────────
+  # Musical Intelligence (MI) - interpretacao IA local
+  # ─────────────────────────────────────────────────────────
+  - id: prompt-interpreter
+    name: Prompt Interpreter
+    domain: mi
+    description: Converte prompt natural -> intencao musical estruturada (JSON).
+    dependencies: []
+    required_skills:
+      - llm-prompting
+      - llama-cpp
+    activation_criteria:
+      - Novo prompt do usuario
+      - Workflow New Composition / Instrument Composer
+
+  - id: style-detection
+    name: Style Detection
+    domain: mi
+    description: Classifica estilo/genero a partir do prompt ou features de audio.
+    dependencies:
+      - prompt-interpreter
+    required_skills:
+      - onnx-runtime
+      - llm-prompting
+    activation_criteria:
+      - Apos interpretacao para fixar genero
+      - Workflow Audio Assisted
+
+  - id: blueprint-generator
+    name: Blueprint Generator
+    domain: mi
+    description: Compila intents em Music Blueprint (proto, reproduzivel por seed).
+    dependencies:
+      - prompt-interpreter
+      - style-detection
+    required_skills:
+      - blueprint-schema
+      - protobuf-basics
+    activation_criteria:
+      - Finalizado prompt+style -> gerar blueprint
+
+  - id: arrangement-planner
+    name: Arrangement Planner
+    domain: mi
+    description: Planeja quem/when/energia por secao do Blueprint.
+    dependencies:
+      - blueprint-generator
+    required_skills: []
+    activation_criteria:
+      - Distribuir instrumentos por secao
+
+  - id: timeline-planner
+    name: Timeline Planner
+    domain: mi
+    description: Distribui blueprint em bars/secoes e define transicoes.
+    dependencies:
+      - blueprint-generator
+    required_skills: []
+    activation_criteria:
+      - Sequencia de compassos para MTE
+
+  - id: workflow-manager
+    name: Workflow Manager
+    domain: mi
+    description: Orquestra os 10 workflows chamando subagentes na ordem correta.
+    dependencies:
+      - prompt-interpreter
+      - blueprint-generator
+      - timeline-planner
+      - arrangement-planner
+    required_skills: []
+    activation_criteria:
+      - Iniciar/finalizar workflow
+
+  # ─────────────────────────────────────────────────────────
+  # Audio Intelligence (analise de audio)
+  # ─────────────────────────────────────────────────────────
+  - id: tempo-detection
+    name: Tempo Detection
+    domain: audio
+    description: BPM + confidence a partir de audio.
+    dependencies: []
+    required_skills:
+      - dsp-onset-detection
+      - dsp-fft
+    activation_criteria:
+      - Audio Assisted Composer
+      - Reharmonize sobre audio
+
+  - id: key-detection
+    name: Key Detection
+    domain: audio
+    description: Tom + escala dominante a partir de audio.
+    dependencies: []
+    required_skills:
+      - dsp-fft
+    activation_criteria:
+      - Audio Assisted Composer
+      - Reharmonize
+
+  - id: beat-detection
+    name: Beat Detection
+    domain: audio
+    description: Beats/downbeats para alinhamento com MIDI gerado.
+    dependencies:
+      - tempo-detection
+    required_skills:
+      - dsp-onset-detection
+    activation_criteria:
+      - Continue Composition sobre audio
+
+  - id: chord-detection
+    name: Chord Detection
+    domain: audio
+    description: Timeline harmonica a partir de audio.
+    dependencies: []
+    required_skills:
+      - dsp-fft
+      - dsp-windows
+    activation_criteria:
+      - Reharmonize
+      - Audio Assisted
+
+  # ─────────────────────────────────────────────────────────
+  # Instrument Layer (mapeamento de instrumentos)
+  # ─────────────────────────────────────────────────────────
+  - id: plugin-scanner
+    name: Plugin Scanner
+    domain: instrument
+    description: Varre VSTi instalados e cataloga metadados.
+    dependencies: []
+    required_skills: []
+    activation_criteria:
+      - Reescanear plugins
+      - Inicializar projeto novo
+
+  - id: preset-manager
+    name: Preset Manager
+    domain: instrument
+    description: Carrega/salva presets de projeto e templates.
+    dependencies: []
+    required_skills: []
+    activation_criteria:
+      - Salvar/carregar preset
+
+  - id: instrument-mapper
+    name: Instrument Mapper
+    domain: instrument
+    description: Mapeia instrumentos do arranjo para canais/VSTis do host.
+    dependencies:
+      - plugin-scanner
+      - preset-manager
+    required_skills:
+      - midi-gm-mapping
+    activation_criteria:
+      - Antes do MidiRenderer gerar bytes

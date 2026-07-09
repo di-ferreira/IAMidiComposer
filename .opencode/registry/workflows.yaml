@@ -1,0 +1,215 @@
+# Workflows Registry — AI MIDI Composer
+# Cataloga os 10 workflows do projeto, mapeando sequencia de agentes/subagentes
+# envolvidos, dependencias, entrada/saida e testes exigidos.
+
+version: 1
+schema: aimidi.workflow.registry/1
+
+# Padrao de um registro:
+#   - id:                    slug kebab-case
+#     number:                1..10
+#     name:                  nome exibivel
+#     description:           curta
+#     involved_agents:       [agent ids]
+#     involved_subagents:    [subagent ids na ordem ideal]
+#     dependencies:          [outro workflow id se houver]
+#     input:                 descricao
+#     output:                descricao
+#     seed_source:           plano de seed
+#     doc_file:              docs/workflows/<NN>-<id>.md
+
+workflows:
+  - id: new-composition
+    number: 1
+    name: New Composition
+    description: Composição completa a partir de um prompt.
+    involved_agents: [ai-engineer, music-theory-engineer]
+    involved_subagents:
+      - prompt-interpreter
+      - style-detection
+      - blueprint-generator
+      - timeline-planner
+      - arrangement-planner
+      - workflow-manager
+      - harmony-engine
+      - chord-engine
+      - rhythm-engine
+      - bass-engine
+      - drum-engine
+      - piano-engine
+      - humanization-engine
+      - orchestration-engine
+      - instrument-mapper
+      - midi-renderer
+    input: Prompt em linguagem natural (UI).
+    output: MIDI completo (SMF + buffer para o Plugin).
+    seed_source: Semente aleatória de 64 bits gerada na UI; persistida no Shared
+      Musical Context para reprodução.
+    doc_file: docs/workflows/01-new-composition.md
+
+  - id: instrument-composer
+    number: 2
+    name: Instrument Composer
+    description: Gerar apenas um instrumento (ex.: apenas bateria sobre chão
+      existente).
+    involved_agents: [music-theory-engineer]
+    involved_subagents:
+      - workflow-manager
+      - <instrumento>-engine (drum/bass/guitar/piano/strings)
+      - humanization-engine
+      - midi-renderer
+    input: Shared Musical Context + instrumento selecionado + seed.
+    output: MIDI do instrumento solicitado.
+    seed_source: Mesma seed do projeto (Continuidade de identidade).
+    doc_file: docs/workflows/02-instrument-composer.md
+
+  - id: audio-assisted-composer
+    number: 3
+    name: Audio Assisted Composer
+    description: Analisar áudio existente e gerar MIDI coerente.
+    involved_agents: [dsp-engineer, ai-engineer, music-theory-engineer]
+    involved_subagents:
+      - tempo-detection
+      - key-detection
+      - beat-detection
+      - chord-detection
+      - style-detection
+      - blueprint-generator
+      - workflow-manager
+      - harmony-engine
+      - melody-engine
+      - midi-renderer
+    input: Arquivo/stream de áudio importado + prompt opcional.
+    output: Shared Musical Context + MIDI coerente.
+    seed_source: Seed derivada do hash(acoust features) para estabilidade inicial;
+      usuário pode trocar seed.
+    doc_file: docs/workflows/03-audio-assisted-composer.md
+
+  - id: continue-composition
+    number: 4
+    name: Continue Composition
+    description: Continuar uma composição existente a partir de um ponto.
+    involved_agents: [music-theory-engineer]
+    involved_subagents:
+      - workflow-manager
+      - timeline-planner
+      - harmony-engine
+      - chord-engine
+      - melody-engine
+      - rhythm-engine
+      - bass-engine
+      - drum-engine
+      - humanization-engine
+      - midi-renderer
+    input: Shared Musical Context existente + ponto de continuação (bar X).
+    output: MIDI continuation + Context atualizado.
+    seed_source: Mesma seed da composição original; mantém identidade.
+    doc_file: docs/workflows/04-continue-composition.md
+
+  - id: smart-regeneration
+    number: 5
+    name: Smart Regeneration
+    description: Regenerar apenas uma região (lock-aware).
+    involved_agents: [music-theory-engineer]
+    involved_subagents:
+      - workflow-manager
+      - harmony-engine
+      - chord-engine
+      - <instrumento>-engine
+      - humanization-engine
+      - midi-renderer
+    input: Shared Musical Context + região + seed.
+    output: MIDI regenerado da região; resto intocado.
+    seed_source: Seed da região (subset do projeto) + nova seed se desejado.
+    doc_file: docs/workflows/05-smart-regeneration.md
+
+  - id: generate-variations
+    number: 6
+    name: Generate Variations
+    description: Variacoes mantendo identidade (mesmo blueprint, seed diferente).
+    involved_agents: [music-theory-engineer]
+    involved_subagents:
+      - workflow-manager
+      - timeline-planner
+      - arrangement-planner
+      - harmony-engine
+      - chord-engine
+      - melody-engine
+      - rhythm-engine
+      - humanization-engine
+      - midi-renderer
+    input: Shared Musical Context + número de variações + delta de seed.
+    output: Conjunto de variaçãoes MIDI.
+    seed_source: Seed base + incremento (var1 = base+1, var2 = base+2, ...).
+    doc_file: docs/workflows/06-generate-variations.md
+
+  - id: replace-instrument
+    number: 7
+    name: Replace Instrument
+    description: Adaptar MIDI de um instrumento para outro (ex.: piano -> strings).
+    involved_agents: [music-theory-engineer]
+    involved_subagents:
+      - workflow-manager
+      - orchestration-engine
+      - instrument-mapper
+      - midi-renderer
+    input: Shared Musical Context + instrumento origem + instrumento destino.
+    output: MIDI revoiced para novo instrumento.
+    seed_source: Mesma seed; orquestracao seguindo a regra "preserva melodia, muda
+      timbre".
+    doc_file: docs/workflows/07-replace-instrument.md
+
+  - id: reharmonize
+    number: 8
+    name: Reharmonize
+    description: Nova harmonia preservando melodia.
+    involved_agents: [music-theory-engineer]
+    involved_subagents:
+      - workflow-manager
+      - harmony-engine
+      - chord-engine
+      - midi-renderer
+    input: Composição existente + melodia locked + seed opcional.
+    output: MIDI com nova harmonia sobre melodia preservada.
+    seed_source: Nova seed se desejado; ou reutiliza seed original.
+    doc_file: docs/workflows/08-reharmonize.md
+
+  - id: orchestrate
+    number: 9
+    name: Orchestrate
+    description: Transformar ideia simples em arranjo orquestral completo.
+    involved_agents: [music-theory-engineer]
+    involved_subagents:
+      - workflow-manager
+      - orchestration-engine
+      - harmony-engine
+      - chord-engine
+      - strings-engine
+      - humanization-engine
+      - instrument-mapper
+      - midi-renderer
+    input: Ideia simples (single piano idea, melody+chords).
+    output: Arranjo orquestral completo (strings/brass/woodwinds/perc).
+    seed_source: Mesma seed; trava melodia/contorno original.
+    doc_file: docs/workflows/09-orchestrate.md
+
+  - id: arrange
+    number: 10
+    name: Arrange
+    description: Criar acompanhamento automaticamente (ex.: drums+bass+pads sobre
+      acordes).
+    involved_agents: [music-theory-engineer]
+    involved_subagents:
+      - workflow-manager
+      - arrangement-planner
+      - rhythm-engine
+      - bass-engine
+      - drum-engine
+      - piano-engine
+      - humanization-engine
+      - instrument-mapper
+      - midi-renderer
+    input: Sequencia harmonica simples (chords).
+    output: Com acompanhamento (rhythm section + pads).
+    seed_source: Mesma seed do projeto.
+    doc_file: docs/workflows/10-arrange.md
