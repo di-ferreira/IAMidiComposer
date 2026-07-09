@@ -14,5 +14,7 @@ Documentação técnica do projeto. Ver `standards/documentation.md` para estilo
 ## Index
 
 - `architecture/overview.md` - visão arquitetural.
-- `adr/0000-template.md` (a criar).
+- `adr/README.md` - índice de Architecture Decision Records (inclui ADR-0001 boundary C++/Go).
+- `roadmap/README.md` - índice do roadmap; documento canônico em `roadmap/ROADMAP.md`.
 - `workflows/README.md` - lista dos 10 workflows.
+- `adr/0000-template.md` (a criar).
