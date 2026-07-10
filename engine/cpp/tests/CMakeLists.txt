@@ -6,12 +6,14 @@
 set(MTE_TESTS
     test_theory_scales.cpp
     test_theory_harmony.cpp
+    test_service_locator.cpp
 )
 
 add_executable(aimidi_mte_tests ${MTE_TESTS})
 target_link_libraries(aimidi_mte_tests PRIVATE
     aimidi::mte
-    GTest::gtest_main)
+    GTest::gtest_main
+    GTest::gmock)
 
 target_compile_features(aimidi_mte_tests PRIVATE cxx_std_20)
 
