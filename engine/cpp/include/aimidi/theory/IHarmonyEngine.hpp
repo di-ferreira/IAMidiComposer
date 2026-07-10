@@ -9,6 +9,7 @@
 
 #include <aimidi/theory/Types.hpp>
 #include <aimidi/theory/IScaleProvider.hpp>
+#include <aimidi/theory/IChordEngine.hpp>
 #include <vector>
 #include <memory>
 
@@ -30,8 +31,10 @@ public:
     virtual std::vector<MidiEvent> generate(const HarmonyRequest& req) const = 0;
 };
 
-/// Factory: builds a HarmonyEngine injecting a ScaleProvider (DI).
+/// Factory: builds a HarmonyEngine injecting ScaleProvider + ChordEngine (DI).
+/// If chords is nullptr, a default ChordEngine is created internally.
 std::unique_ptr<IHarmonyEngine> make_harmony_engine(
-    std::shared_ptr<IScaleProvider> scales);
+    std::shared_ptr<IScaleProvider> scales,
+    std::shared_ptr<IChordEngine>   chords = nullptr);
 
 } // namespace aimidi::theory

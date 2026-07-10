@@ -25,6 +25,15 @@ struct MidiEvent {
     std::uint8_t  note;
     std::uint8_t  velocity;
     std::uint8_t  articulation;
+
+    constexpr bool operator==(const MidiEvent& other) const noexcept {
+        return tick_on == other.tick_on
+            && tick_off == other.tick_off
+            && channel == other.channel
+            && note == other.note
+            && velocity == other.velocity
+            && articulation == other.articulation;
+    }
 };
 
 // Reproducible seed type.

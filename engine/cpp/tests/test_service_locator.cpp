@@ -106,7 +106,7 @@ TEST(ServiceLocatorTest, MusicTheoryModule_RegistersHarmonyEngine) {
         .bars = 4,
         .seed = 42};
     const auto events = he->generate(req);
-    EXPECT_TRUE(events.empty());  // harmony stub returns empty.
+    EXPECT_FALSE(events.empty());  // harmony engine emits real MIDI now.
 }
 
 TEST(ServiceLocatorTest, IdempotentRegister) {
@@ -133,5 +133,5 @@ TEST(ServiceLocatorTest, HarmonyResolvesScaleProviderFromLocator) {
         .scale = "minor",
         .bars = 2,
         .seed = 1};
-    EXPECT_TRUE(he->generate(req).empty());
+    EXPECT_FALSE(he->generate(req).empty());
 }
