@@ -1,7 +1,11 @@
 # 0001. Boundary C++ ↔ Go — gRPC socket vs FFI inline
 
 Data: 2026-07-09
-Status: Proposta
+Status: Aceita
+
+Aprovado em 2026-07-10 por:
+- Software Architect (design modular e contratos gRPC/protobuf)
+- CTO (trade-off aceito: latência de IPC bem menor que custo de cgo em macOS; contrato versionado compensa acoplamento)
 
 ## Contexto
 

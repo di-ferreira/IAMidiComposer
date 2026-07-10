@@ -19,14 +19,16 @@ mudança de decisão exige um novo ADR que substitui o anterior (status `Substit
 
 ### Vigentes
 
-- **[ADR-0001 — Boundary C++ ↔ Go: gRPC socket vs FFI inline](ADR-0001-boundary-cpp-go.md)** — Status: Proposta. Fase 0 do roadmap.
+| ADR | Título | Status | Fase |
+|---|---|---|---|
+| **[ADR-0001](ADR-0001-boundary-cpp-go.md)** | Boundary C++ ↔ Go: gRPC socket vs FFI inline | **Aceita** | Fase 0 |
+| **[ADR-0002](ADR-0002-di-container-cpp.md)** | DI container (ServiceLocator) no MTE C++20 | Proposta | Fase 1.1 |
+| **[ADR-0003](ADR-0003-shared-context-serialization.md)** | Serialização do Shared Musical Context (proto vs JSON) | Proposta | Fase 1.3 |
 
 ### Previstos (a abrir conforme roadmap)
 
 | ADR | Título | Fase |
 |---|---|---|
-| ADR-0002 | DI framework C++ (boost::di vs manual ServiceLocator) | Fase 1.1 |
-| ADR-0003 | Serialização do Shared Musical Context (proto vs JSON) | Fase 1.3 |
 | ADR-0004 | MTE como lib estática linkada no ACE Go, ou processo separado? (pode confirmar ou reverter ADR-0001) | Fase 2.4 |
 | ADR-0005 | Wrapper llama.cpp via cgo vs Python sidecar vs ONNX-only | Fase 3.1 |
 | ADR-0006 | AI model distribution (download first-run vs bundled <2GB) | Fase 7.3 |
