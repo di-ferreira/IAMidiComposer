@@ -8,8 +8,6 @@
 
 namespace aimidi::plugin {
 
-namespace {
-
 class AiMidiComposerEditor : public juce::AudioProcessorEditor {
 public:
     explicit AiMidiComposerEditor(AiMidiComposerProcessor& p)
@@ -32,8 +30,6 @@ public:
 private:
     AiMidiComposerProcessor& proc_;
 };
-
-} // namespace
 
 juce::AudioProcessorEditor* AiMidiComposerProcessor::createEditor() {
     return new AiMidiComposerEditor(*this);

@@ -28,7 +28,8 @@ juce_add_plugin(ai_midi_composer
 
 target_sources(ai_midi_composer PRIVATE
     src/PluginProcessor.cpp
-    src/PluginEditor.cpp)
+    src/PluginEditor.cpp
+    src/engine/StubEngineBridge.cpp)
 
 target_compile_features(ai_midi_composer PRIVATE cxx_std_20)
 

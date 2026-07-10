@@ -2,9 +2,20 @@
 //
 // AudioProcessor skeleton. The class is fully inline-declared here; the .cpp
 // contains the factory function and the processBlock implementation.
+//
+// Sprint 3 / Phase 1.4: added `IEngineBridge` (DI) and a lock-free SPSC
+// `StandardMidiFifo` that drains engine-produced MIDI into the Audio Thread
+// without ever allocating or locking. See standards/realtime_audio.md.
 #pragma once
 
+#include <atomic>
+#include <memory>
+#include <span>
+
 #include <juce_audio_utils/juce_audio_utils.h>
+
+#include "engine/EngineBridge.hpp"
+#include "engine/MidiFifo.hpp"
 
 namespace aimidi::plugin {
 
@@ -41,7 +52,39 @@ public:
     bool canAddBus(bool isInput) const override;
     bool isBusesLayoutSupported(const BusesLayout&) const override;
 
+    // ---- Engine bridge access (Message Thread only) -----------------------
+    // The processor owns the bridge; UI/bridge workers call via these accessors.
+    const IEngineBridge& engineBridge() const noexcept { return *engine_bridge_; }
+    IEngineBridge& engineBridge() noexcept { return *engine_bridge_; }
+
+    // ---- MIDI out enqueue (Message Thread) --------------------------------
+    // Called by the engine bridge callback (or a UI-driven preview) when the
+    // engine returns MIDI events. Pushes into the SPSC FIFO for the Audio
+    // Thread to drain in `processBlock`. `noexcept` — push never throws; if the
+    // FIFO is full the remaining events are dropped (caller may log/metric).
+    void enqueueMidiEvents(std::span<const FifoMidiEvent> events) noexcept;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AiMidiComposerProcessor)
+
+private:
+    // SPSC FIFO: producer = Message Thread (enqueueMidiEvents), consumer =
+    // Audio Thread (processBlock). Lock-free, no allocation on either side.
+    StandardMidiFifo midi_out_fifo_;
+
+    // Engine bridge — pure interface, concrete impl injected in ctor. All
+    // calls happen on the Message Thread; the Audio Thread NEVER touches this.
+    std::unique_ptr<IEngineBridge> engine_bridge_;
+
+    // Mirror of `engine_bridge_->isConnected()` for lock-free reads from the
+    // Message Thread (UI). The Audio Thread does not read this.
+    std::atomic<bool> engine_connected_{false};
+
+    // Guards Message-Thread-only state swaps (e.g. swapping bridge impls or
+    // rebuilding pending request data). NEVER used from the Audio Thread —
+    // JUCE's CriticalSection is not lock-free and must never appear in
+    // `processBlock`. It is here purely for future message-thread state
+    // exchanges between the editor and a bridge worker.
+    juce::CriticalSection config_lock_;
 };
 
 } // namespace aimidi::plugin
