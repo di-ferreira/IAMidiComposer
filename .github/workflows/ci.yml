@@ -1,8 +1,13 @@
 # AI MIDI Composer — CI
 #
-# Stages: configure (CMake), build engine_cpp & plugin (VST3, Linux for now),
-#         install Go, build ACE, run GoogleTest, run Go tests.
-#         Benchmarks are run separately on release-tagged commits.
+# Stages:
+#   1. proto_codegen  — gera stubs Go a partir do proto e falha se houver drift.
+#   2. engine_cpp     — matrix multi-OS (Ubuntu/macOS/Windows), CMake + GoogleTest.
+#   3. plugin         — VST3 build (Ubuntu only até ADR-0007 codesigning).
+#   4. engine_go      — matrix multi-OS, Go build + vet + test.
+#   5. lint           — clang-format + gofmt/goimports (Ubuntu only, OS-agnóstico).
+#
+# Benchmarks (placeholder CMake AIMIDI_BUILD_BENCHMARKS) ficam para Fase 7.
 name: CI
 
 on:
@@ -15,22 +20,91 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ───────────────────────────────────────────────────────────
-  engine_cpp:
-    name: Engine (C++) build + tests
+  # ───────────────────────────────────────────────────────────────
+  # Objetivo 2: Proto codegen + drift detection.
+  # Roda ANTES dos demais (sem needs). Se os stubs gerados divergirem do
+  # que está commitado, este job falha — garantindo que o repo esteja
+  # sempre em sync com o .proto.
+  #
+  # To update proto stubs locally, run the same `protoc` command;
+  # this job enforces drift-free generated code.
+  proto_codegen:
+    name: Proto codegen + sync
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
+          # fetch-depth 1 é suficiente para que `git diff --exit-code`
+          # detecte drift (sem diff = stubs em sync).
+          fetch-depth: 1
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Install protoc + Go plugins
+        run: |
+          # Preferimos apt por simplicidade e determinismo no CI.
+          # Alternativa: baixar release oficial do protobuf (ver comentado).
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends protobuf-compiler unzip
+          # protoc-gen-go e protoc-gen-go-grpc via go install.
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Generate Go stubs from proto
+        run: |
+          protoc \
+            --proto_path=proto \
+            --go_out=engine/go/internal/proto \
+            --go_opt=module=aimidi.composer/ace/internal/proto \
+            --go-grpc_out=engine/go/internal/proto \
+            --go-grpc_opt=module=aimidi.composer/ace/internal/proto \
+            proto/aimidi/v1/aimidi.proto
+      - name: Verify no drift (generated == committed)
+        run: |
+          git diff --exit-code engine/go/internal/proto/aimidi/v1/ \
+            || (echo "::error::proto codegen desatualizado — rode 'make proto' ou os comandos do job e commit" && exit 1)
+
+  # ───────────────────────────────────────────────────────────────
+  # Objetivo 1: Engine (C++) multi-OS matrix.
+  # clang-format/clang-tidy só instalados em Ubuntu (Objetivo 4);
+  # clang-tidy ainda não roda no build (opcional nesta fase).
+  engine_cpp:
+    name: Engine (C++) [${{ matrix.os }}]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-13, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
           submodules: false
-      - name: Install toolchain
+      - name: Install toolchain (linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             build-essential cmake ninja-build clang clang-format clang-tidy
-      - name: Configure
+      - name: Install toolchain (macos)
+        if: runner.os == 'macOS'
         run: |
-          cmake -S . -B build -G Ninja \
+          brew install cmake ninja clang
+      - name: Install toolchain (windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install -y cmake ninja llvm
+      - name: Configure
+        shell: bash
+        run: |
+          # Em Linux/macOS usamos -G Ninja; em Windows tentamos Ninja
+          # (instalado via chocolatey) — fallback default funcionaria também.
+          GENERATOR="Ninja"
+          EXTRA_FLAGS=""
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            EXTRA_FLAGS="-DCMAKE_CXX_COMPILER=clang++"
+          fi
+          # Em Windows, o LLVM instalado pelo choco traz clang++ no PATH.
+          cmake -S . -B build -G "$GENERATOR" $EXTRA_FLAGS \
             -DCMAKE_BUILD_TYPE=Debug \
             -DAIMIDI_BUILD_PLUGIN=OFF \
             -DAIMIDI_BUILD_ENGINE_CPP=ON \
@@ -38,16 +112,20 @@ jobs:
             -DAIMIDI_ENABLE_ASAN=ON \
             -DAIMIDI_ENABLE_UBSAN=ON
       - name: Build
-        run: cmake --build build --parallel 2
+        shell: bash
+        run: cmake --build build --parallel
       - name: Test
         working-directory: build
+        shell: bash
         run: ctest --output-on-failure
 
-  # ───────────────────────────────────────────────────────────
+  # ───────────────────────────────────────────────────────────────
+  # Plugin (VST3) — Ubuntu only enquanto ADR-0007 (codesigning/
+  # entitlements para macOS/Windows) não é implementada.
+  # continue-on-error REMOVIDO: se quebrar, deve quebrar.
   plugin:
     name: Plugin (VST3) build
     runs-on: ubuntu-22.04
-    continue-on-error: true   # scaffolding: enabled once JUCE build is wired
     steps:
       - uses: actions/checkout@v4
       - name: Install toolchain
@@ -65,18 +143,24 @@ jobs:
             -DAIMIDI_BUILD_PLUGIN=ON \
             -DAIMIDI_BUILD_ENGINE_CPP=OFF
       - name: Build
-        run: cmake --build build --parallel 2
+        run: cmake --build build --parallel
 
-  # ───────────────────────────────────────────────────────────
+  # ───────────────────────────────────────────────────────────────
+  # Objetivo 1: ACE (Go) multi-OS matrix.
+  # setup-go@v5 cuida da instalação em todos os OSes; não há actions/cache
+  # explícito pois setup-go já faz cache do module path.
   engine_go:
-    name: ACE (Go) build + tests
-    runs-on: ubuntu-22.04
+    name: ACE (Go) [${{ matrix.os }}]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-13, windows-2022]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-          cache: true
       - name: Build
         working-directory: engine/go
         run: go build ./...
@@ -85,16 +169,20 @@ jobs:
         run: go vet ./...
       - name: Test
         working-directory: engine/go
-        run: go test ./... -race -shuffle=on
+        shell: bash
+        run: |
+          # Go tests are empty for now; will populate as handlers are added (Fase 1.2 do ROADMAP)
+          go test ./... -race -shuffle=on
 
-  # ───────────────────────────────────────────────────────────
+  # ───────────────────────────────────────────────────────────────
+  # Objetivo 3: lint sem continue-on-error.
+  # clang-format e goimports são OS-agnósticos; Ubuntu é suficiente.
   lint:
     name: Format check (C++ / Go)
     runs-on: ubuntu-22.04
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - name: Install clang-format & go
+      - name: Install clang-format
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends clang-format

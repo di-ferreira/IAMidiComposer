@@ -59,7 +59,8 @@ compile_commands.json
 # -------------------------------------------------------------------
 *.test
 *.out
-go.sum
+# go.sum é versionado — necessário para builds reproduzíveis.
+# (removido da ignore list; era `go.sum`)
 vendor/
 go.work
 go.work.sum
@@ -67,12 +68,18 @@ go.work.sum
 # -------------------------------------------------------------------
 # Protobuf generated
 # -------------------------------------------------------------------
-*.pb.go
+# Stubs Go gerados a partir de proto/ DEVEM ser versionados — o job
+# `proto_codegen` do CI faz `git diff --exit-code` para detectar drift.
+# Ignoramos apenas outputs geNode/Node, etc.
 *.pb.cc
 *.pb.h
 *_pb2.py
+# Regras específicas para protobuf-go: negamos (un-ignore) os arquivos
+# gerados a partir do proto do projeto.
+*.pb.go
 *.grpc.go
-*.grpc.cc
+!engine/go/internal/proto/**/*.pb.go
+!engine/go/internal/proto/**/*.grpc.go
 
 # -------------------------------------------------------------------
 # Python (scripts/infra/IA)
