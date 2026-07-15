@@ -10,7 +10,6 @@ TEST(PromptInterpreterTest, ReturnsNonEmptyBlueprint) {
     auto bp = interpreter->interpret("upbeat pop song in C major", 42);
     EXPECT_EQ(bp.root_key, "C");
     EXPECT_EQ(bp.scale, "major");
-    EXPECT_EQ(bp.bpm, 120);
     EXPECT_FALSE(bp.sections.empty());
     EXPECT_FALSE(bp.instruments.empty());
 }
@@ -25,21 +24,52 @@ TEST(PromptInterpreterTest, SeedDeterministic) {
     EXPECT_EQ(a.instruments.size(), b.instruments.size());
 }
 
-TEST(PromptInterpreterTest, DefaultBlueprintHasPopGenre) {
+TEST(PromptInterpreterTest, DetectsGenre) {
     auto interpreter = make_prompt_interpreter();
-    auto bp = interpreter->interpret("anything", 0);
+    auto bp = interpreter->interpret("jazz piano trio", 0);
     ASSERT_FALSE(bp.genres.empty());
-    EXPECT_EQ(bp.genres[0], "pop");
+    EXPECT_EQ(bp.genres[0], "jazz");
 }
 
-TEST(PromptInterpreterTest, HasFourSections) {
+TEST(PromptInterpreterTest, DetectsKey) {
     auto interpreter = make_prompt_interpreter();
-    auto bp = interpreter->interpret("test", 0);
+    auto bp = interpreter->interpret("song in D minor", 0);
+    EXPECT_EQ(bp.root_key, "D");
+    EXPECT_EQ(bp.scale, "minor");
+}
+
+TEST(PromptInterpreterTest, DetectsBPM) {
+    auto interpreter = make_prompt_interpreter();
+    auto bp = interpreter->interpret("140 bpm electronic track", 0);
+    EXPECT_EQ(bp.bpm, 140);
+}
+
+TEST(PromptInterpreterTest, DetectsEnergy) {
+    auto interpreter = make_prompt_interpreter();
+    auto bp = interpreter->interpret("calm relaxing piano piece", 0);
+    EXPECT_EQ(bp.energy, EnergyLevel::low);
+}
+
+TEST(PromptInterpreterTest, DetectsInstruments) {
+    auto interpreter = make_prompt_interpreter();
+    auto bp = interpreter->interpret("piano bass drums trio", 0);
+    EXPECT_EQ(bp.instruments.size(), 3u);
+}
+
+TEST(PromptInterpreterTest, RejectsLiteralNotes) {
+    auto interpreter = make_prompt_interpreter();
+    auto bp = interpreter->interpret("play notes C E G", 0);
+    EXPECT_TRUE(bp.sections.empty());
+}
+
+TEST(PromptInterpreterTest, HasFourSectionsDefault) {
+    auto interpreter = make_prompt_interpreter();
+    auto bp = interpreter->interpret("pop song", 0);
     EXPECT_EQ(bp.sections.size(), 4u);
 }
 
-TEST(PromptInterpreterTest, HasThreeInstruments) {
+TEST(PromptInterpreterTest, CustomStructure) {
     auto interpreter = make_prompt_interpreter();
-    auto bp = interpreter->interpret("test", 0);
-    EXPECT_EQ(bp.instruments.size(), 3u);
+    auto bp = interpreter->interpret("intro 4 bars verse 8 bars chorus 8 bars", 0);
+    EXPECT_GE(bp.sections.size(), 2u);
 }
