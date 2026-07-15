@@ -14,6 +14,7 @@
 #include <aimidi/theory/IHumanizationEngine.hpp>
 #include <aimidi/theory/IMidiRenderer.hpp>
 #include <aimidi/theory/IPromptInterpreter.hpp>
+#include <aimidi/theory/IStyleDetection.hpp>
 
 #include <memory>
 
@@ -96,6 +97,14 @@ void register_music_theory(ServiceLocator& loc) {
             []() -> std::shared_ptr<aimidi::theory::IPromptInterpreter> {
                 return std::shared_ptr<aimidi::theory::IPromptInterpreter>(
                     aimidi::theory::make_prompt_interpreter().release());
+            });
+    }
+
+    if (!loc.has<aimidi::theory::IStyleDetection>()) {
+        loc.bind<aimidi::theory::IStyleDetection>(
+            []() -> std::shared_ptr<aimidi::theory::IStyleDetection> {
+                return std::shared_ptr<aimidi::theory::IStyleDetection>(
+                    aimidi::theory::make_style_detection().release());
             });
     }
 }
