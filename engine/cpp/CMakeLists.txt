@@ -15,6 +15,7 @@ set(MTE_SOURCES
     src/theory/humanization_engine.cpp
     src/theory/music_theory_module.cpp
     src/theory/midi_renderer.cpp
+    src/theory/prompt_interpreter.cpp
 )
 
 set(MTE_HEADERS
@@ -30,6 +31,7 @@ set(MTE_HEADERS
     include/aimidi/theory/IHumanizationEngine.hpp
     include/aimidi/theory/IMidiRenderer.hpp
     include/aimidi/theory/Types.hpp
+    include/aimidi/theory/IPromptInterpreter.hpp
 )
 
 # --- Library target ------------------------------------------

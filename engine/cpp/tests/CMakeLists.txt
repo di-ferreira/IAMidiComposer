@@ -16,6 +16,7 @@ set(MTE_TESTS
     test_theory_golden.cpp
     test_service_locator.cpp
     test_arena.cpp
+    test_prompt_interpreter.cpp
 )
 
 add_executable(aimidi_mte_tests ${MTE_TESTS})
