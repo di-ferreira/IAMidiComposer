@@ -12,8 +12,10 @@ set(MTE_TESTS
     test_drum_engine.cpp
     test_piano_engine.cpp
     test_humanization_engine.cpp
+    test_midi_renderer.cpp
     test_theory_golden.cpp
     test_service_locator.cpp
+    test_arena.cpp
 )
 
 add_executable(aimidi_mte_tests ${MTE_TESTS})

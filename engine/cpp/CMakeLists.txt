@@ -14,10 +14,12 @@ set(MTE_SOURCES
     src/theory/piano_engine.cpp
     src/theory/humanization_engine.cpp
     src/theory/music_theory_module.cpp
+    src/theory/midi_renderer.cpp
 )
 
 set(MTE_HEADERS
     include/aimidi/core/ServiceLocator.hpp
+    include/aimidi/core/MidiEventArena.hpp
     include/aimidi/theory/IScaleProvider.hpp
     include/aimidi/theory/IHarmonyEngine.hpp
     include/aimidi/theory/IChordEngine.hpp
@@ -26,6 +28,7 @@ set(MTE_HEADERS
     include/aimidi/theory/IDrumEngine.hpp
     include/aimidi/theory/IPianoEngine.hpp
     include/aimidi/theory/IHumanizationEngine.hpp
+    include/aimidi/theory/IMidiRenderer.hpp
     include/aimidi/theory/Types.hpp
 )
 
