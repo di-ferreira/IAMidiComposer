@@ -29,6 +29,10 @@ set(MTE_SOURCES
     src/theory/orchestration_engine.cpp
     src/theory/reharmonize_engine.cpp
     src/theory/orchestrate_workflow.cpp
+    src/dsp/fft.cpp
+    src/dsp/windows.cpp
+    src/dsp/onset_detection.cpp
+    src/dsp/biquad_filter.cpp
 )
 
 set(MTE_HEADERS
@@ -59,6 +63,10 @@ set(MTE_HEADERS
     include/aimidi/theory/IOrchestrationEngine.hpp
     include/aimidi/theory/IReharmonizeEngine.hpp
     include/aimidi/theory/IOrchestrateWorkflow.hpp
+    include/aimidi/dsp/FFT.hpp
+    include/aimidi/dsp/Windows.hpp
+    include/aimidi/dsp/OnsetDetection.hpp
+    include/aimidi/dsp/BiquadFilter.hpp
 )
 
 # --- Library target ------------------------------------------
