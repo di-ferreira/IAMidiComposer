@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "_comment": "AI MIDI Composer - opencode project config. Agents e skills sao descobertos automaticamente em .opencode/.",
+  //"comment": "AI MIDI Composer - opencode project config. Agents e skills sao descobertos automaticamente em .opencode/.",
   "permission": {
     "edit": "ask",
     "bash": "ask",
@@ -15,7 +15,11 @@
     "list": "allow"
   },
   "agent": {
-    "build": { "description": "Engineer padrao para implementacao do AI MIDI Composer." },
-    "plan": { "description": "Planejamento/analise sem edicoes." }
+    "build": {
+      "description": "Engineer padrao para implementacao do AI MIDI Composer."
+    },
+    "plan": {
+      "description": "Planejamento/analise sem edicoes."
+    }
   }
 }
