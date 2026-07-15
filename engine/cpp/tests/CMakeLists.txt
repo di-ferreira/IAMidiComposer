@@ -11,6 +11,8 @@ set(MTE_TESTS
     test_bass_engine.cpp
     test_rhythm_engine.cpp
     test_drum_engine.cpp
+    test_guitar_engine.cpp
+    test_strings_engine.cpp
     test_piano_engine.cpp
     test_humanization_engine.cpp
     test_midi_renderer.cpp

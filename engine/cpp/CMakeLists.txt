@@ -11,6 +11,8 @@ set(MTE_SOURCES
     src/theory/bass_engine.cpp
     src/theory/rhythm_engine.cpp
     src/theory/drum_engine.cpp
+    src/theory/guitar_engine.cpp
+    src/theory/strings_engine.cpp
     src/theory/piano_engine.cpp
     src/theory/humanization_engine.cpp
     src/theory/music_theory_module.cpp
@@ -35,6 +37,8 @@ set(MTE_HEADERS
     include/aimidi/theory/IBassEngine.hpp
     include/aimidi/theory/IRhythmEngine.hpp
     include/aimidi/theory/IDrumEngine.hpp
+    include/aimidi/theory/IGuitarEngine.hpp
+    include/aimidi/theory/IStringsEngine.hpp
     include/aimidi/theory/IPianoEngine.hpp
     include/aimidi/theory/IHumanizationEngine.hpp
     include/aimidi/theory/IMidiRenderer.hpp
