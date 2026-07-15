@@ -5,6 +5,7 @@
 
 set(MTE_TESTS
     bench_mte_pipeline.cpp
+    test_gm_programs.cpp
     test_theory_scales.cpp
     test_theory_harmony.cpp
     test_chord_engine.cpp
@@ -29,6 +30,7 @@ set(MTE_TESTS
     test_instrument_mapper.cpp
     test_counterpoint_engine.cpp
     test_modulation_engine.cpp
+    test_orchestration_engine.cpp
 )
 
 add_executable(aimidi_mte_tests ${MTE_TESTS})

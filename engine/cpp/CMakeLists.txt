@@ -26,6 +26,7 @@ set(MTE_SOURCES
     src/theory/instrument_mapper.cpp
     src/theory/modulation_engine.cpp
     src/theory/counterpoint_engine.cpp
+    src/theory/orchestration_engine.cpp
 )
 
 set(MTE_HEADERS
@@ -45,6 +46,7 @@ set(MTE_HEADERS
     include/aimidi/theory/Types.hpp
     include/aimidi/theory/IPromptInterpreter.hpp
     include/aimidi/theory/IStyleDetection.hpp
+    include/aimidi/theory/GMPrograms.hpp
     include/aimidi/theory/InputValidation.hpp
     include/aimidi/theory/ITimelinePlanner.hpp
     include/aimidi/theory/IBlueprintGenerator.hpp
@@ -52,6 +54,7 @@ set(MTE_HEADERS
     include/aimidi/theory/IInstrumentMapper.hpp
     include/aimidi/theory/IModulationEngine.hpp
     include/aimidi/theory/ICounterpointEngine.hpp
+    include/aimidi/theory/IOrchestrationEngine.hpp
 )
 
 # --- Library target ------------------------------------------
