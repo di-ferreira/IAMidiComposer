@@ -21,6 +21,7 @@ set(MTE_TESTS
     test_input_validation.cpp
     test_timeline_planner.cpp
     test_blueprint_generator.cpp
+    test_arrangement_planner.cpp
 )
 
 add_executable(aimidi_mte_tests ${MTE_TESTS})

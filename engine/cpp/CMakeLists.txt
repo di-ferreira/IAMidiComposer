@@ -20,6 +20,7 @@ set(MTE_SOURCES
     src/theory/input_validation.cpp
     src/theory/timeline_planner.cpp
     src/theory/blueprint_generator.cpp
+    src/theory/arrangement_planner.cpp
 )
 
 set(MTE_HEADERS
@@ -40,6 +41,7 @@ set(MTE_HEADERS
     include/aimidi/theory/InputValidation.hpp
     include/aimidi/theory/ITimelinePlanner.hpp
     include/aimidi/theory/IBlueprintGenerator.hpp
+    include/aimidi/theory/IArrangementPlanner.hpp
 )
 
 # --- Library target ------------------------------------------
