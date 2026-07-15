@@ -6,7 +6,10 @@
 #include <aimidi/core/ServiceLocator.hpp>
 #include <aimidi/theory/IScaleProvider.hpp>
 #include <aimidi/theory/IChordEngine.hpp>
+#include <aimidi/theory/IBassEngine.hpp>
+#include <aimidi/theory/IRhythmEngine.hpp>
 #include <aimidi/theory/IHarmonyEngine.hpp>
+#include <aimidi/theory/IDrumEngine.hpp>
 
 #include <memory>
 
@@ -29,12 +32,15 @@ void register_music_theory(ServiceLocator& loc) {
             });
     }
 
+    if (!loc.has<aimidi::theory::IBassEngine>()) {
+        loc.bind<aimidi::theory::IBassEngine>(
+            []() -> std::shared_ptr<aimidi::theory::IBassEngine> {
+                return std::shared_ptr<aimidi::theory::IBassEngine>(
+                    aimidi::theory::make_bass_engine().release());
+            });
+    }
+
     if (!loc.has<aimidi::theory::IHarmonyEngine>()) {
-        // Capture a pointer to the locator: the locator must outlive the
-        // resolved HarmonyEngine instance (lifetime contract documented in
-        // ServiceLocator.hpp). Lazy resolution happens at resolve() time so
-        // that a mock IScaleProvider/IChordEngine registered after
-        // register_music_theory would still be picked up.
         const ServiceLocator* loc_ptr = &loc;
         loc.bind<aimidi::theory::IHarmonyEngine>(
             [loc_ptr]() -> std::shared_ptr<aimidi::theory::IHarmonyEngine> {
@@ -46,6 +52,14 @@ void register_music_theory(ServiceLocator& loc) {
                 return std::shared_ptr<aimidi::theory::IHarmonyEngine>(
                     aimidi::theory::make_harmony_engine(std::move(scales),
                                                         std::move(chords)).release());
+            });
+    }
+
+    if (!loc.has<aimidi::theory::IDrumEngine>()) {
+        loc.bind<aimidi::theory::IDrumEngine>(
+            []() -> std::shared_ptr<aimidi::theory::IDrumEngine> {
+                return std::shared_ptr<aimidi::theory::IDrumEngine>(
+                    aimidi::theory::make_drum_engine().release());
             });
     }
 }

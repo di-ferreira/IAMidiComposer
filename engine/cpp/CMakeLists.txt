@@ -8,6 +8,9 @@ set(MTE_SOURCES
     src/theory/scales.cpp
     src/theory/harmony.cpp
     src/theory/chord_engine.cpp
+    src/theory/bass_engine.cpp
+    src/theory/rhythm_engine.cpp
+    src/theory/drum_engine.cpp
     src/theory/music_theory_module.cpp
 )
 
@@ -16,6 +19,9 @@ set(MTE_HEADERS
     include/aimidi/theory/IScaleProvider.hpp
     include/aimidi/theory/IHarmonyEngine.hpp
     include/aimidi/theory/IChordEngine.hpp
+    include/aimidi/theory/IBassEngine.hpp
+    include/aimidi/theory/IRhythmEngine.hpp
+    include/aimidi/theory/IDrumEngine.hpp
     include/aimidi/theory/Types.hpp
 )
 
