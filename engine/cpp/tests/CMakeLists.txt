@@ -18,6 +18,7 @@ set(MTE_TESTS
     test_arena.cpp
     test_prompt_interpreter.cpp
     test_style_detection.cpp
+    test_input_validation.cpp
 )
 
 add_executable(aimidi_mte_tests ${MTE_TESTS})

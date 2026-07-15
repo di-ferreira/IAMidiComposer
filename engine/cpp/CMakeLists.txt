@@ -17,6 +17,7 @@ set(MTE_SOURCES
     src/theory/midi_renderer.cpp
     src/theory/prompt_interpreter.cpp
     src/theory/style_detection.cpp
+    src/theory/input_validation.cpp
 )
 
 set(MTE_HEADERS
@@ -34,6 +35,7 @@ set(MTE_HEADERS
     include/aimidi/theory/Types.hpp
     include/aimidi/theory/IPromptInterpreter.hpp
     include/aimidi/theory/IStyleDetection.hpp
+    include/aimidi/theory/InputValidation.hpp
 )
 
 # --- Library target ------------------------------------------
