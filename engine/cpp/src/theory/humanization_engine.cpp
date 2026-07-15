@@ -81,6 +81,99 @@ public:
             }
         }
     }
+
+    std::vector<MidiEvent> humanize_by_style(
+        const std::vector<MidiEvent>& input,
+        HumanizationStyle style,
+        int bpm,
+        Seed seed) const override
+    {
+        (void)bpm;
+        if (input.empty()) return {};
+
+        std::vector<MidiEvent> out = input;
+
+        HumanizationParams params;
+        params.seed                = seed;
+        params.timing_jitter_ticks = 0;
+        params.velocity_variation  = 0;
+        params.groove_swing        = 0.0f;
+        params.snap_to_grid        = false;
+        params.grid_resolution     = 120;
+
+        switch (style) {
+            case HumanizationStyle::standard:
+                params.timing_jitter_ticks = 5;
+                params.velocity_variation  = 10;
+                break;
+
+            case HumanizationStyle::swing:
+                // Swing: offbeat eighth notes delayed ~30% of eighth duration.
+                params.timing_jitter_ticks = 3;
+                params.velocity_variation  = 8;
+                params.groove_swing = 0.30f;
+                break;
+
+            case HumanizationStyle::laid_back:
+                // Laid-back: random jitter with a net-positive offset and
+                // reduced velocity applied after the base pass.
+                params.timing_jitter_ticks = 5;
+                params.velocity_variation  = 8;
+                break;
+
+            case HumanizationStyle::pushed:
+                // Pushed: random jitter with a net-negative offset and
+                // increased velocity applied after the base pass.
+                params.timing_jitter_ticks = 5;
+                params.velocity_variation  = 8;
+                break;
+
+            case HumanizationStyle::snap_to_grid:
+                params.snap_to_grid    = true;
+                params.grid_resolution = 120;
+                params.timing_jitter_ticks = 0;
+                params.velocity_variation  = 0;
+                break;
+        }
+
+        apply(out, params);
+
+        // Style-specific post-processing.
+        switch (style) {
+            case HumanizationStyle::laid_back: {
+                // Delay all notes by an additional ~10 ticks (≈10ms at 120 BPM).
+                const int delay = 10;
+                for (auto& ev : out) {
+                    int new_on  = static_cast<int>(ev.tick_on)  + delay;
+                    int new_off = static_cast<int>(ev.tick_off) + delay;
+                    ev.tick_on  = static_cast<std::uint32_t>(std::max(0, new_on));
+                    ev.tick_off = static_cast<std::uint32_t>(std::max(static_cast<int>(ev.tick_on) + 1, new_off));
+                    // Reduce velocity by ~10%.
+                    ev.velocity = static_cast<std::uint8_t>(
+                        std::max(1, static_cast<int>(ev.velocity) * 9 / 10));
+                }
+                break;
+            }
+            case HumanizationStyle::pushed: {
+                // Advance all notes by ~5 ticks (≈5ms at 120 BPM).
+                const int advance = 5;
+                for (auto& ev : out) {
+                    int new_on  = static_cast<int>(ev.tick_on)  - advance;
+                    int new_off = static_cast<int>(ev.tick_off) - advance;
+                    ev.tick_on  = static_cast<std::uint32_t>(std::max(0, new_on));
+                    ev.tick_off = static_cast<std::uint32_t>(std::max(static_cast<int>(ev.tick_on) + 1, new_off));
+                    // Increase velocity by ~10%.
+                    ev.velocity = static_cast<std::uint8_t>(
+                        std::min(127, static_cast<int>(ev.velocity) * 11 / 10));
+                }
+                break;
+            }
+            default:
+                break;
+        }
+
+        return out;
+    }
 };
 
 std::unique_ptr<IHumanizationEngine> make_humanization_engine() {

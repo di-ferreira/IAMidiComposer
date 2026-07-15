@@ -32,6 +32,7 @@ set(MTE_TESTS
     test_modulation_engine.cpp
     test_orchestration_engine.cpp
     test_reharmonize_engine.cpp
+    test_orchestrate_workflow.cpp
 )
 
 add_executable(aimidi_mte_tests ${MTE_TESTS})

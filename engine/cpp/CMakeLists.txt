@@ -28,6 +28,7 @@ set(MTE_SOURCES
     src/theory/counterpoint_engine.cpp
     src/theory/orchestration_engine.cpp
     src/theory/reharmonize_engine.cpp
+    src/theory/orchestrate_workflow.cpp
 )
 
 set(MTE_HEADERS
@@ -57,6 +58,7 @@ set(MTE_HEADERS
     include/aimidi/theory/ICounterpointEngine.hpp
     include/aimidi/theory/IOrchestrationEngine.hpp
     include/aimidi/theory/IReharmonizeEngine.hpp
+    include/aimidi/theory/IOrchestrateWorkflow.hpp
 )
 
 # --- Library target ------------------------------------------
