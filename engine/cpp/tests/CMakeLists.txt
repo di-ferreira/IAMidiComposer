@@ -25,6 +25,8 @@ set(MTE_TESTS
     test_arrangement_planner.cpp
     test_golden_prompts.cpp
     test_instrument_mapper.cpp
+    test_counterpoint_engine.cpp
+    test_modulation_engine.cpp
 )
 
 add_executable(aimidi_mte_tests ${MTE_TESTS})

@@ -22,6 +22,8 @@ set(MTE_SOURCES
     src/theory/blueprint_generator.cpp
     src/theory/arrangement_planner.cpp
     src/theory/instrument_mapper.cpp
+    src/theory/modulation_engine.cpp
+    src/theory/counterpoint_engine.cpp
 )
 
 set(MTE_HEADERS
@@ -44,6 +46,8 @@ set(MTE_HEADERS
     include/aimidi/theory/IBlueprintGenerator.hpp
     include/aimidi/theory/IArrangementPlanner.hpp
     include/aimidi/theory/IInstrumentMapper.hpp
+    include/aimidi/theory/IModulationEngine.hpp
+    include/aimidi/theory/ICounterpointEngine.hpp
 )
 
 # --- Library target ------------------------------------------

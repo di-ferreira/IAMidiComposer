@@ -19,6 +19,8 @@
 #include <aimidi/theory/IBlueprintGenerator.hpp>
 #include <aimidi/theory/IArrangementPlanner.hpp>
 #include <aimidi/theory/IInstrumentMapper.hpp>
+#include <aimidi/theory/IModulationEngine.hpp>
+#include <aimidi/theory/ICounterpointEngine.hpp>
 
 #include <memory>
 
@@ -141,6 +143,26 @@ void register_music_theory(ServiceLocator& loc) {
             []() -> std::shared_ptr<aimidi::theory::IInstrumentMapper> {
                 return std::shared_ptr<aimidi::theory::IInstrumentMapper>(
                     aimidi::theory::make_instrument_mapper().release());
+            });
+    }
+
+    if (!loc.has<aimidi::theory::IModulationEngine>()) {
+        const ServiceLocator* loc_ptr = &loc;
+        loc.bind<aimidi::theory::IModulationEngine>(
+            [loc_ptr]() -> std::shared_ptr<aimidi::theory::IModulationEngine> {
+                auto scales = loc_ptr->resolve<aimidi::theory::IScaleProvider>();
+                return std::shared_ptr<aimidi::theory::IModulationEngine>(
+                    aimidi::theory::make_modulation_engine(std::move(scales)).release());
+            });
+    }
+
+    if (!loc.has<aimidi::theory::ICounterpointEngine>()) {
+        const ServiceLocator* loc_ptr = &loc;
+        loc.bind<aimidi::theory::ICounterpointEngine>(
+            [loc_ptr]() -> std::shared_ptr<aimidi::theory::ICounterpointEngine> {
+                auto scales = loc_ptr->resolve<aimidi::theory::IScaleProvider>();
+                return std::shared_ptr<aimidi::theory::ICounterpointEngine>(
+                    aimidi::theory::make_counterpoint_engine(std::move(scales)).release());
             });
     }
 }
