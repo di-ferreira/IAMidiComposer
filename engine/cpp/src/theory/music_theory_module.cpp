@@ -15,6 +15,8 @@
 #include <aimidi/theory/IMidiRenderer.hpp>
 #include <aimidi/theory/IPromptInterpreter.hpp>
 #include <aimidi/theory/IStyleDetection.hpp>
+#include <aimidi/theory/ITimelinePlanner.hpp>
+#include <aimidi/theory/IBlueprintGenerator.hpp>
 
 #include <memory>
 
@@ -105,6 +107,22 @@ void register_music_theory(ServiceLocator& loc) {
             []() -> std::shared_ptr<aimidi::theory::IStyleDetection> {
                 return std::shared_ptr<aimidi::theory::IStyleDetection>(
                     aimidi::theory::make_style_detection().release());
+            });
+    }
+
+    if (!loc.has<aimidi::theory::IBlueprintGenerator>()) {
+        loc.bind<aimidi::theory::IBlueprintGenerator>(
+            []() -> std::shared_ptr<aimidi::theory::IBlueprintGenerator> {
+                return std::shared_ptr<aimidi::theory::IBlueprintGenerator>(
+                    aimidi::theory::make_blueprint_generator().release());
+            });
+    }
+
+    if (!loc.has<aimidi::theory::ITimelinePlanner>()) {
+        loc.bind<aimidi::theory::ITimelinePlanner>(
+            []() -> std::shared_ptr<aimidi::theory::ITimelinePlanner> {
+                return std::shared_ptr<aimidi::theory::ITimelinePlanner>(
+                    aimidi::theory::make_timeline_planner().release());
             });
     }
 }

@@ -18,6 +18,8 @@ set(MTE_SOURCES
     src/theory/prompt_interpreter.cpp
     src/theory/style_detection.cpp
     src/theory/input_validation.cpp
+    src/theory/timeline_planner.cpp
+    src/theory/blueprint_generator.cpp
 )
 
 set(MTE_HEADERS
@@ -36,6 +38,8 @@ set(MTE_HEADERS
     include/aimidi/theory/IPromptInterpreter.hpp
     include/aimidi/theory/IStyleDetection.hpp
     include/aimidi/theory/InputValidation.hpp
+    include/aimidi/theory/ITimelinePlanner.hpp
+    include/aimidi/theory/IBlueprintGenerator.hpp
 )
 
 # --- Library target ------------------------------------------
