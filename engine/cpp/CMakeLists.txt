@@ -21,6 +21,7 @@ set(MTE_SOURCES
     src/theory/timeline_planner.cpp
     src/theory/blueprint_generator.cpp
     src/theory/arrangement_planner.cpp
+    src/theory/instrument_mapper.cpp
 )
 
 set(MTE_HEADERS
@@ -42,6 +43,7 @@ set(MTE_HEADERS
     include/aimidi/theory/ITimelinePlanner.hpp
     include/aimidi/theory/IBlueprintGenerator.hpp
     include/aimidi/theory/IArrangementPlanner.hpp
+    include/aimidi/theory/IInstrumentMapper.hpp
 )
 
 # --- Library target ------------------------------------------

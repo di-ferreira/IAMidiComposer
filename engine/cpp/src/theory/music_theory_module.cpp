@@ -18,6 +18,7 @@
 #include <aimidi/theory/ITimelinePlanner.hpp>
 #include <aimidi/theory/IBlueprintGenerator.hpp>
 #include <aimidi/theory/IArrangementPlanner.hpp>
+#include <aimidi/theory/IInstrumentMapper.hpp>
 
 #include <memory>
 
@@ -132,6 +133,14 @@ void register_music_theory(ServiceLocator& loc) {
             []() -> std::shared_ptr<aimidi::theory::IArrangementPlanner> {
                 return std::shared_ptr<aimidi::theory::IArrangementPlanner>(
                     aimidi::theory::make_arrangement_planner().release());
+            });
+    }
+
+    if (!loc.has<aimidi::theory::IInstrumentMapper>()) {
+        loc.bind<aimidi::theory::IInstrumentMapper>(
+            []() -> std::shared_ptr<aimidi::theory::IInstrumentMapper> {
+                return std::shared_ptr<aimidi::theory::IInstrumentMapper>(
+                    aimidi::theory::make_instrument_mapper().release());
             });
     }
 }
