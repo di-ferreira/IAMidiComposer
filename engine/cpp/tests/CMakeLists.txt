@@ -10,6 +10,8 @@ set(MTE_TESTS
     test_bass_engine.cpp
     test_rhythm_engine.cpp
     test_drum_engine.cpp
+    test_piano_engine.cpp
+    test_humanization_engine.cpp
     test_theory_golden.cpp
     test_service_locator.cpp
 )

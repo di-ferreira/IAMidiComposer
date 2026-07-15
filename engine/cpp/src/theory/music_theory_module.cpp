@@ -10,6 +10,8 @@
 #include <aimidi/theory/IRhythmEngine.hpp>
 #include <aimidi/theory/IHarmonyEngine.hpp>
 #include <aimidi/theory/IDrumEngine.hpp>
+#include <aimidi/theory/IPianoEngine.hpp>
+#include <aimidi/theory/IHumanizationEngine.hpp>
 
 #include <memory>
 
@@ -60,6 +62,22 @@ void register_music_theory(ServiceLocator& loc) {
             []() -> std::shared_ptr<aimidi::theory::IDrumEngine> {
                 return std::shared_ptr<aimidi::theory::IDrumEngine>(
                     aimidi::theory::make_drum_engine().release());
+            });
+    }
+
+    if (!loc.has<aimidi::theory::IPianoEngine>()) {
+        loc.bind<aimidi::theory::IPianoEngine>(
+            []() -> std::shared_ptr<aimidi::theory::IPianoEngine> {
+                return std::shared_ptr<aimidi::theory::IPianoEngine>(
+                    aimidi::theory::make_piano_engine().release());
+            });
+    }
+
+    if (!loc.has<aimidi::theory::IHumanizationEngine>()) {
+        loc.bind<aimidi::theory::IHumanizationEngine>(
+            []() -> std::shared_ptr<aimidi::theory::IHumanizationEngine> {
+                return std::shared_ptr<aimidi::theory::IHumanizationEngine>(
+                    aimidi::theory::make_humanization_engine().release());
             });
     }
 }
