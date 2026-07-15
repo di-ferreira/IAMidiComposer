@@ -4,6 +4,7 @@
 # project-wide flags on this target only.
 
 set(MTE_TESTS
+    bench_mte_pipeline.cpp
     test_theory_scales.cpp
     test_theory_harmony.cpp
     test_chord_engine.cpp
@@ -22,6 +23,7 @@ set(MTE_TESTS
     test_timeline_planner.cpp
     test_blueprint_generator.cpp
     test_arrangement_planner.cpp
+    test_golden_prompts.cpp
     test_instrument_mapper.cpp
 )
 
