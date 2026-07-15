@@ -65,3 +65,12 @@ if(AIMIDI_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
+
+# --- CLI tool ------------------------------------------------
+option(AIMIDI_BUILD_CLI "Build mte_cli command-line tool" ON)
+if(AIMIDI_BUILD_CLI)
+    add_executable(mte_cli tools/mte_cli.cpp)
+    target_link_libraries(mte_cli PRIVATE aimidi::mte)
+    target_compile_features(mte_cli PRIVATE cxx_std_20)
+    install(TARGETS mte_cli RUNTIME DESTINATION bin)
+endif()
