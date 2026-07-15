@@ -21,6 +21,7 @@
 #include <aimidi/theory/IInstrumentMapper.hpp>
 #include <aimidi/theory/IModulationEngine.hpp>
 #include <aimidi/theory/ICounterpointEngine.hpp>
+#include <aimidi/theory/IReharmonizeEngine.hpp>
 
 #include <memory>
 
@@ -163,6 +164,26 @@ void register_music_theory(ServiceLocator& loc) {
                 auto scales = loc_ptr->resolve<aimidi::theory::IScaleProvider>();
                 return std::shared_ptr<aimidi::theory::ICounterpointEngine>(
                     aimidi::theory::make_counterpoint_engine(std::move(scales)).release());
+            });
+    }
+
+    if (!loc.has<aimidi::theory::IReharmonizeEngine>()) {
+        const ServiceLocator* loc_ptr = &loc;
+        loc.bind<aimidi::theory::IReharmonizeEngine>(
+            [loc_ptr]() -> std::shared_ptr<aimidi::theory::IReharmonizeEngine> {
+                auto scales = loc_ptr->resolve<aimidi::theory::IScaleProvider>();
+                std::shared_ptr<aimidi::theory::IChordEngine> chords;
+                if (loc_ptr->has<aimidi::theory::IChordEngine>()) {
+                    chords = loc_ptr->resolve<aimidi::theory::IChordEngine>();
+                }
+                std::shared_ptr<aimidi::theory::IHarmonyEngine> harmony;
+                if (loc_ptr->has<aimidi::theory::IHarmonyEngine>()) {
+                    harmony = loc_ptr->resolve<aimidi::theory::IHarmonyEngine>();
+                }
+                return std::shared_ptr<aimidi::theory::IReharmonizeEngine>(
+                    aimidi::theory::make_reharmonize_engine(
+                        std::move(scales), std::move(chords),
+                        std::move(harmony)).release());
             });
     }
 }

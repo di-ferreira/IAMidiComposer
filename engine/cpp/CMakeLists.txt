@@ -27,6 +27,7 @@ set(MTE_SOURCES
     src/theory/modulation_engine.cpp
     src/theory/counterpoint_engine.cpp
     src/theory/orchestration_engine.cpp
+    src/theory/reharmonize_engine.cpp
 )
 
 set(MTE_HEADERS
@@ -55,6 +56,7 @@ set(MTE_HEADERS
     include/aimidi/theory/IModulationEngine.hpp
     include/aimidi/theory/ICounterpointEngine.hpp
     include/aimidi/theory/IOrchestrationEngine.hpp
+    include/aimidi/theory/IReharmonizeEngine.hpp
 )
 
 # --- Library target ------------------------------------------
