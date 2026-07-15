@@ -20,6 +20,12 @@ service CompositionService {
   rpc GenerateVariations(GenerateVariationsRequest) returns (CompositionResponse);
 }
 
+// Service for interpreting natural language prompts into MusicBlueprints.
+service PromptInterpreterService {
+  // Interpret a natural language prompt into a structured MusicBlueprint.
+  rpc InterpretPrompt(InterpretPromptRequest) returns (InterpretPromptResponse);
+}
+
 // -----------------------------------------------------------------
 // Music Blueprint (consumed by Music Theory Engine via ace-internal)
 // -----------------------------------------------------------------
@@ -31,15 +37,22 @@ message MusicBlueprint {
   int32  ppq          = 5;  // 480 default
   repeated string genres = 6;
   Energy energy       = 7;
-  Timeline timeline   = 8;
-  repeated Instrument instruments = 9;
+  Emotion emotion     = 8;
+  Timeline timeline   = 9;
+  repeated Instrument instruments = 10;
 }
 
 message Energy {
   enum Level { UNSPECIFIED = 0; LOW = 1; MID = 2; HIGH = 3; }
-  Level level = 1;
-  float density = 2;       // 0..1
-  float complexity = 3;   // 0..1
+  Level level      = 1;
+  float density    = 2;  // 0..1
+  float complexity = 3;  // 0..1
+}
+
+message Emotion {
+  float valence   = 1;  // 0..1
+  float arousal   = 2;  // 0..1
+  float dominance = 3;  // 0..1
 }
 
 message Mood {
@@ -58,7 +71,9 @@ message Section {
   int32  start_bar        = 2;
   int32  bars              = 3;
   Energy energy           = 4;
-  repeated InstrumentRole instruments = 5;
+  float  density           = 5;  // 0..1
+  float  complexity        = 6;  // 0..1
+  repeated InstrumentRole instruments = 7;
 }
 
 message Instrument {
@@ -71,6 +86,21 @@ message Instrument {
 message InstrumentRole {
   string          instrument_name = 1;
   string          role            = 2;  // "lead"|"comping"|...
+}
+
+// -----------------------------------------------------------------
+// Prompt Interpreter
+// -----------------------------------------------------------------
+message InterpretPromptRequest {
+  int64  seed        = 1;
+  string prompt      = 2;  // user natural language
+  string style_hint  = 3;  // optional style hint
+}
+
+message InterpretPromptResponse {
+  bool            success   = 1;
+  string          error     = 2;
+  MusicBlueprint  blueprint = 3;
 }
 
 // -----------------------------------------------------------------
