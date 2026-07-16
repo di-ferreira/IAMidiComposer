@@ -1,6 +1,8 @@
 #include "ui/PianoRollComponent.hpp"
+#include <juce_audio_basics/juce_audio_basics.h>
 #include <algorithm>
 #include <sstream>
+#include <map>
 
 namespace aimidi::plugin {
 
@@ -25,6 +27,10 @@ const auto kTooltipBg        = juce::Colour::fromRGBA(0, 0, 0, 210);
 const auto kTooltipText      = juce::Colour::fromRGB(240, 240, 240);
 const auto kHoverHighlight   = juce::Colour::fromRGBA(255, 255, 255, 20);
 const auto kKeyboardBg       = juce::Colour::fromRGB(40, 40, 45);
+const auto kSelectionFill    = juce::Colour::fromRGBA(0, 120, 255, 40);
+const auto kSelectionBorder  = juce::Colour::fromRGBA(0, 120, 255, 180);
+const auto kDiffBeforeFill   = juce::Colour::fromRGBA(180, 180, 180, 60);
+const auto kDiffBeforeBorder = juce::Colour::fromRGBA(180, 180, 180, 100);
 
 const juce::Colour kTrackColors[] = {
     juce::Colour::fromHSV(0.00f, 0.75f, 0.55f, 1.0f),
@@ -92,6 +98,91 @@ void PianoRollComponent::setVisibleRange(int lowNote, int highNote) {
     repaint();
 }
 
+// ── Diff visualization ──────────────────────────────────────────────────────
+void PianoRollComponent::showDiff(const std::vector<PianoRollNote>& before,
+                                   const std::vector<PianoRollNote>& after) {
+    beforeNotes_ = before;
+    afterNotes_  = after;
+    diffMode_    = true;
+    repaint();
+}
+
+void PianoRollComponent::clearDiff() {
+    beforeNotes_.clear();
+    afterNotes_.clear();
+    diffMode_ = false;
+    repaint();
+}
+
+// ── Region selection ────────────────────────────────────────────────────────
+void PianoRollComponent::clearSelection() {
+    selectedBarStart_ = -1;
+    selectedBarEnd_   = -1;
+    isDragging_       = false;
+    isDragExport_     = false;
+    repaint();
+}
+
+bool PianoRollComponent::hasSelection() const {
+    return selectedBarStart_ >= 0 && selectedBarEnd_ > selectedBarStart_;
+}
+
+int PianoRollComponent::getSelectedBarStart() const {
+    return selectedBarStart_;
+}
+
+int PianoRollComponent::getSelectedBarEnd() const {
+    return selectedBarEnd_;
+}
+
+// ── SMF parsing ─────────────────────────────────────────────────────────────
+std::vector<PianoRollNote> PianoRollComponent::parseSmfToNotes(
+    const std::vector<std::uint8_t>& smfData, int ppq)
+{
+    std::vector<PianoRollNote> notes;
+
+    juce::MemoryInputStream stream(smfData.data(), smfData.size(), false);
+    juce::MidiFile midiFile;
+    if (!midiFile.readFrom(stream))
+        return notes;
+
+    for (int t = 0; t < midiFile.getNumTracks(); ++t) {
+        auto* track = midiFile.getTrack(t);
+        if (!track) continue;
+
+        std::string trackName;
+        for (int i = 0; i < track->getNumEvents(); ++i) {
+            auto& msg = track->getEventPointer(i)->message;
+            if (msg.isTrackNameEvent())
+                trackName = msg.getTextFromTextMetaEvent().toStdString();
+        }
+
+        for (int i = 0; i < track->getNumEvents(); ++i) {
+            auto* ev = track->getEventPointer(i);
+            if (!ev->message.isNoteOn() || ev->message.getVelocity() == 0)
+                continue;
+
+            int note     = ev->message.getNoteNumber();
+            int velocity = ev->message.getVelocity();
+            int channel  = ev->message.getChannel();
+            int tickOn   = static_cast<int>(ev->message.getTimeStamp());
+            int tickOff  = tickOn + ppq;
+
+            for (int j = i + 1; j < track->getNumEvents(); ++j) {
+                auto* off = track->getEventPointer(j);
+                if (off->message.isNoteOff() && off->message.getNoteNumber() == note) {
+                    tickOff = static_cast<int>(off->message.getTimeStamp());
+                    break;
+                }
+            }
+
+            notes.push_back({tickOn, tickOff, note, velocity, channel, trackName});
+        }
+    }
+
+    return notes;
+}
+
 // ── JUCE overrides ──────────────────────────────────────────────────────────
 void PianoRollComponent::paint(juce::Graphics& g) {
     g.fillAll(kBgColor);
@@ -105,7 +196,12 @@ void PianoRollComponent::paint(juce::Graphics& g) {
     drawKeyboard(g, keyArea);
     drawGrid(g, gridArea);
     drawLockRegions(g, gridArea);
-    drawNotes(g, gridArea);
+    drawSelection(g, gridArea);
+    if (diffMode_) {
+        drawDiffNotes(g, gridArea);
+    } else {
+        drawNotes(g, gridArea);
+    }
     drawTooltip(g);
 }
 
@@ -143,8 +239,76 @@ void PianoRollComponent::mouseExit(const juce::MouseEvent&) {
     repaint();
 }
 
+void PianoRollComponent::mouseDown(const juce::MouseEvent& event) {
+    auto bounds     = getLocalBounds();
+    auto headerArea = bounds.removeFromTop(kHeaderHeight);
+    auto keyArea    = bounds.removeFromLeft(kKeyboardWidth);
+    auto gridArea   = bounds;
+
+    const auto pos = event.getPosition();
+
+    if (headerArea.contains(pos) || gridArea.contains(pos)) {
+        // Start region selection
+        isDragging_   = true;
+        isDragExport_ = false;
+        dragStartTick_ = xToTick(pos.x, gridArea);
+
+        const int ticksPerBar = ppq_ * 4;
+        const int bar = std::clamp(dragStartTick_ / ticksPerBar,
+                                   0, endTick_ / ticksPerBar);
+        selectedBarStart_ = bar;
+        selectedBarEnd_   = bar;
+        repaint();
+    } else if (keyArea.contains(pos)) {
+        // Prepare drag export
+        isDragExport_ = true;
+        isDragging_   = false;
+        dragStartPos_ = pos;
+    }
+}
+
+void PianoRollComponent::mouseDrag(const juce::MouseEvent& event) {
+    auto bounds     = getLocalBounds();
+    auto headerArea = bounds.removeFromTop(kHeaderHeight);
+    auto keyArea    = bounds.removeFromLeft(kKeyboardWidth);
+    auto gridArea   = bounds;
+
+    const auto pos = event.getPosition();
+
+    if (isDragExport_) {
+        const auto diff = pos - dragStartPos_;
+        if (diff.getDistanceFromOrigin() > 8) {
+            startSMFExport();
+            isDragExport_ = false;
+            isDragging_   = false;
+        }
+        return;
+    }
+
+    if (isDragging_) {
+        const int currentTick = xToTick(pos.x, gridArea);
+        const int ticksPerBar = ppq_ * 4;
+        const int startBar = std::clamp(dragStartTick_ / ticksPerBar,
+                                        0, endTick_ / ticksPerBar);
+        const int endBar   = std::clamp(currentTick / ticksPerBar,
+                                        0, endTick_ / ticksPerBar);
+
+        selectedBarStart_ = std::min(startBar, endBar);
+        selectedBarEnd_   = std::max(startBar, endBar);
+        repaint();
+    }
+}
+
+void PianoRollComponent::mouseUp(const juce::MouseEvent&) {
+    isDragging_   = false;
+    isDragExport_ = false;
+    repaint();
+
+    if (onSelectionChanged)
+        onSelectionChanged();
+}
+
 void PianoRollComponent::timerCallback() {
-    // Periodic repaint keeps tooltip / hover responsive.
     if (isMouseOver(true))
         repaint();
 }
@@ -188,7 +352,6 @@ void PianoRollComponent::drawKeyboard(juce::Graphics& g, juce::Rectangle<int> ar
         };
 
         if (isBlackKey(note)) {
-            // Black key – shorter and narrower overlay
             const auto bk = juce::Rectangle<int>{
                 area.getX(), keyArea.getY(),
                 kBlackKeyWidth,
@@ -204,7 +367,6 @@ void PianoRollComponent::drawKeyboard(juce::Graphics& g, juce::Rectangle<int> ar
                 g.fillRect(keyArea);
             }
         } else {
-            // White key
             g.setColour(kWhiteKey);
             g.fillRect(keyArea);
             g.setColour(kWhiteKeyEdge);
@@ -215,7 +377,6 @@ void PianoRollComponent::drawKeyboard(juce::Graphics& g, juce::Rectangle<int> ar
                 g.fillRect(keyArea);
             }
 
-            // Label C notes
             if (isCNote(note)) {
                 g.setColour(kNoteLabel);
                 g.setFont(9.0f);
@@ -226,13 +387,11 @@ void PianoRollComponent::drawKeyboard(juce::Graphics& g, juce::Rectangle<int> ar
         }
     }
 
-    // Separator line between keyboard and grid
     g.setColour(juce::Colour::fromRGB(60, 60, 65));
     g.drawVerticalLine(area.getRight() - 1, area.getY(), area.getBottom());
 }
 
 void PianoRollComponent::drawGrid(juce::Graphics& g, juce::Rectangle<int> area) {
-    // Horizontal lines per note
     for (int note = lowNote_; note <= highNote_; ++note) {
         const int y = noteToY(note, area);
         const bool isC = isCNote(note);
@@ -240,7 +399,6 @@ void PianoRollComponent::drawGrid(juce::Graphics& g, juce::Rectangle<int> area) 
         g.drawHorizontalLine(y + kWhiteKeyHeight - 1, area.getX(), area.getRight());
     }
 
-    // Vertical lines
     const int ticksPerBeat  = ppq_;
     const int ticksPerBar   = ppq_ * 4;
     const int ticksPer16th  = ppq_ / 4;
@@ -257,7 +415,6 @@ void PianoRollComponent::drawGrid(juce::Graphics& g, juce::Rectangle<int> area) 
             g.setColour(kBeatLine);
             g.drawVerticalLine(x, area.getY(), area.getBottom());
         } else {
-            // 16th note – dotted line
             g.setColour(k16thDot);
             g.drawVerticalLine(x, area.getY(), area.getBottom());
         }
@@ -279,11 +436,69 @@ void PianoRollComponent::drawNotes(juce::Graphics& g, juce::Rectangle<int> area)
         const auto& base = kTrackColors[note.channel % kNumTrackColors];
         const float alpha = 0.30f + (std::clamp(note.velocity, 0, 127) / 127.0f) * 0.70f;
 
-        // Fill
         g.setColour(base.withAlpha(alpha));
         g.fillRect(x, y, w, kWhiteKeyHeight);
 
-        // Border (brighter)
+        g.setColour(base.withAlpha(1.0f));
+        g.drawRect(x, y, w, kWhiteKeyHeight, 1);
+    }
+}
+
+void PianoRollComponent::drawSelection(juce::Graphics& g, juce::Rectangle<int> area) {
+    if (selectedBarStart_ < 0 || selectedBarEnd_ < 0)
+        return;
+
+    const int ticksPerBar = ppq_ * 4;
+    const int x1 = tickToX(selectedBarStart_ * ticksPerBar, area);
+    const int x2 = tickToX((selectedBarEnd_ + 1) * ticksPerBar, area);
+
+    if (x2 <= x1)
+        return;
+
+    g.setColour(kSelectionFill);
+    g.fillRect(x1, area.getY(), x2 - x1, area.getHeight());
+
+    g.setColour(kSelectionBorder);
+    g.drawRect(x1, area.getY(), x2 - x1, area.getHeight(), 1);
+}
+
+void PianoRollComponent::drawDiffNotes(juce::Graphics& g, juce::Rectangle<int> area) {
+    // Draw before notes in gray (semi-transparent)
+    for (const auto& note : beforeNotes_) {
+        if (note.note < lowNote_ || note.note > highNote_)
+            continue;
+        if (note.tickOff <= startTick_ || note.tickOn >= endTick_)
+            continue;
+
+        int x  = tickToX(note.tickOn, area);
+        int x2 = tickToX(note.tickOff, area);
+        int w  = std::max(2, x2 - x);
+        int y  = noteToY(note.note, area);
+
+        g.setColour(kDiffBeforeFill);
+        g.fillRect(x, y, w, kWhiteKeyHeight);
+        g.setColour(kDiffBeforeBorder);
+        g.drawRect(x, y, w, kWhiteKeyHeight, 1);
+    }
+
+    // Draw after notes in color
+    for (const auto& note : afterNotes_) {
+        if (note.note < lowNote_ || note.note > highNote_)
+            continue;
+        if (note.tickOff <= startTick_ || note.tickOn >= endTick_)
+            continue;
+
+        int x  = tickToX(note.tickOn, area);
+        int x2 = tickToX(note.tickOff, area);
+        int w  = std::max(2, x2 - x);
+        int y  = noteToY(note.note, area);
+
+        const auto& base = kTrackColors[note.channel % kNumTrackColors];
+        const float alpha = 0.30f + (std::clamp(note.velocity, 0, 127) / 127.0f) * 0.70f;
+
+        g.setColour(base.withAlpha(alpha));
+        g.fillRect(x, y, w, kWhiteKeyHeight);
+
         g.setColour(base.withAlpha(1.0f));
         g.drawRect(x, y, w, kWhiteKeyHeight, 1);
     }
@@ -304,7 +519,6 @@ void PianoRollComponent::drawLockRegions(juce::Graphics& g, juce::Rectangle<int>
         g.setColour(region.locked ? kLocked : kLockUnlocked);
         g.fillRect(x1, area.getY(), x2 - x1, area.getHeight());
 
-        // Label
         g.setColour(juce::Colour::fromRGBA(255, 255, 255, 120));
         g.setFont(10.0f);
         g.drawText(region.locked ? "LOCKED" : "UNLOCKED",
@@ -322,7 +536,6 @@ void PianoRollComponent::drawHeader(juce::Graphics& g,
     const int ticksPerBar  = ppq_ * 4;
     const int ticksPerBeat = ppq_;
 
-    // Bar numbers
     g.setFont(10.0f);
     g.setColour(kHeaderText);
     for (int tick = startTick_; tick <= endTick_; tick += ticksPerBar) {
@@ -334,7 +547,6 @@ void PianoRollComponent::drawHeader(juce::Graphics& g,
                    juce::Justification::centredLeft);
     }
 
-    // Beat markers (smaller, below bar numbers)
     g.setFont(8.0f);
     for (int tick = startTick_; tick <= endTick_; tick += ticksPerBeat) {
         if (tick % ticksPerBar == 0)
@@ -352,9 +564,7 @@ void PianoRollComponent::drawTooltip(juce::Graphics& g) {
     if (!showTooltip_)
         return;
 
-    // ── Note-only hover (no note under cursor) ──────────────────────────
     if (hoverNote_ < 0) {
-        // Show generic tick position
         std::ostringstream oss;
         oss << "t=" << hoverTick_;
         const auto text = oss.str();
@@ -372,7 +582,6 @@ void PianoRollComponent::drawTooltip(juce::Graphics& g) {
         return;
     }
 
-    // ── Check for MIDI note under cursor ────────────────────────────────
     const auto it = std::find_if(notes_.begin(), notes_.end(),
         [this](const PianoRollNote& n) {
             return n.note == hoverNote_
@@ -404,6 +613,49 @@ void PianoRollComponent::drawTooltip(juce::Graphics& g) {
     g.fillRoundedRectangle(rect.toFloat(), 4.0f);
     g.setColour(kTooltipText);
     g.drawText(text, rect, juce::Justification::centred);
+}
+
+// ── SMF Export (drag-and-drop) ──────────────────────────────────────────────
+void PianoRollComponent::startSMFExport() {
+    if (notes_.empty())
+        return;
+
+    juce::MidiFile midiFile;
+    midiFile.setTicksPerQuarterNote(ppq_);
+
+    // Conductor track
+    juce::MidiMessageSequence conductorTrack;
+    const int tempo = 60000000 / bpm_;
+    conductorTrack.addEvent(juce::MidiMessage::tempoMetaEvent(tempo), 0);
+    conductorTrack.addEvent(juce::MidiMessage::timeSignatureMetaEvent(4, 4), 0);
+    midiFile.addTrack(conductorTrack);
+
+    // Group notes by channel
+    std::map<int, juce::MidiMessageSequence> trackSequences;
+    for (const auto& note : notes_) {
+        auto& seq = trackSequences[note.channel];
+        seq.addEvent(juce::MidiMessage::noteOn(note.channel, note.note,
+            (juce::uint8)note.velocity), note.tickOn);
+        seq.addEvent(juce::MidiMessage::noteOff(note.channel, note.note,
+            (juce::uint8)0), note.tickOff);
+    }
+
+    for (auto& [ch, seq] : trackSequences) {
+        seq.sort();
+        midiFile.addTrack(seq);
+    }
+
+    // Write to temp file and start external file drag
+    auto tempFile = juce::File::createTempFile(".mid");
+    if (auto out = tempFile.createOutputStream()) {
+        if (midiFile.writeTo(*out)) {
+            out->flush();
+            out.reset();
+            juce::StringArray files;
+            files.add(tempFile.getFullPathName());
+            juce::DragAndDropContainer::performExternalDragDropOfFiles(files, false);
+        }
+    }
 }
 
 } // namespace aimidi::plugin

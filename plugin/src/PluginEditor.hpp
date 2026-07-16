@@ -6,6 +6,7 @@
 namespace aimidi::plugin {
 
 class AiMidiComposerEditor : public juce::AudioProcessorEditor,
+                              public juce::DragAndDropContainer,
                               private juce::TextEditor::Listener,
                               private juce::ComboBox::Listener {
 public:
@@ -22,6 +23,8 @@ private:
     juce::TextEditor  promptBox_;
     juce::ComboBox    workflowSelector_;
     juce::TextButton  generateButton_{"Generate"};
+    juce::TextButton  regenButton_{"Regen Region"};
+    juce::TextButton  diffButton_{"Show Diff"};
     juce::Label       statusLabel_;
     juce::Label       seedLabel_;
     juce::Slider      seedSlider_;
@@ -36,6 +39,10 @@ private:
     // State
     juce::ValueTree state_;
 
+    // Diff state caching
+    std::vector<PianoRollNote> diffBeforeNotes_;
+    bool diffMode_ = false;
+
     // Listeners
     void textEditorTextChanged(juce::TextEditor&) override;
     void textEditorReturnKeyPressed(juce::TextEditor&) override;
@@ -48,6 +55,8 @@ private:
     void updateHistoryBox();
     void updateWorkflowList();
     void onGenerate();
+    void onRegenerate();
+    void onDiffToggle();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AiMidiComposerEditor)
 };

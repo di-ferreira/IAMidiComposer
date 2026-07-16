@@ -6,6 +6,7 @@ static const auto bgColor       = juce::Colour::fromRGB(28, 28, 32);
 static const auto fgColor       = juce::Colour::fromRGB(220, 220, 220);
 static const auto accentColor   = juce::Colour::fromRGB(0, 180, 255);
 static const auto dimColor      = juce::Colour::fromRGB(120, 120, 120);
+static const auto warnColor     = juce::Colour::fromRGB(255, 180, 0);
 
 // ---------------------------------------------------------------------------
 // Constructor
@@ -76,6 +77,21 @@ AiMidiComposerEditor::AiMidiComposerEditor(AiMidiComposerProcessor& p)
     generateButton_.setEnabled(false);
     addAndMakeVisible(generateButton_);
 
+    // ---- Regen Region button -----------------------------------------------
+    regenButton_.setColour(juce::TextButton::buttonColourId, warnColor);
+    regenButton_.setColour(juce::TextButton::textColourOffId,
+                           juce::Colour::fromRGB(255, 255, 255));
+    regenButton_.setEnabled(false);
+    addAndMakeVisible(regenButton_);
+
+    // ---- Diff button -------------------------------------------------------
+    diffButton_.setColour(juce::TextButton::buttonColourId,
+                          juce::Colour::fromRGB(80, 80, 90));
+    diffButton_.setColour(juce::TextButton::textColourOffId,
+                          juce::Colour::fromRGB(200, 200, 200));
+    diffButton_.setEnabled(false);
+    addAndMakeVisible(diffButton_);
+
     // ---- Status label ------------------------------------------------------
     statusLabel_.setText("Ready", juce::dontSendNotification);
     statusLabel_.setColour(juce::Label::textColourId, dimColor);
@@ -90,7 +106,16 @@ AiMidiComposerEditor::AiMidiComposerEditor(AiMidiComposerProcessor& p)
     workflowSelector_.addListener(this);
 
     generateButton_.onClick = [this] { onGenerate(); };
+    regenButton_.onClick    = [this] { onRegenerate(); };
+    diffButton_.onClick     = [this] { onDiffToggle(); };
     seedSlider_.onValueChange = [this] { saveState(); };
+
+    // Selection callback - enable/disable regen button
+    pianoRoll_.onSelectionChanged = [this] {
+        const bool canRegen = pianoRoll_.hasSelection()
+                           && !promptBox_.getText().trim().isEmpty();
+        regenButton_.setEnabled(canRegen);
+    };
 
     // ---- Restore persisted state -------------------------------------------
     loadState();
@@ -138,11 +163,15 @@ void AiMidiComposerEditor::resized() {
     controlsRow.removeFromLeft(10);
     workflowSelector_.setBounds(controlsRow);
 
-    // Generate + Status
+    // Button row: Generate + Regen + Diff + Status
     area.removeFromTop(10);
     auto bottomRow = area.removeFromTop(40);
     generateButton_.setBounds(bottomRow.removeFromLeft(120));
-    bottomRow.removeFromLeft(10);
+    bottomRow.removeFromLeft(8);
+    regenButton_.setBounds(bottomRow.removeFromLeft(120));
+    bottomRow.removeFromLeft(8);
+    diffButton_.setBounds(bottomRow.removeFromLeft(100));
+    bottomRow.removeFromLeft(8);
     statusLabel_.setBounds(bottomRow);
 
     // Piano roll takes the remaining space
@@ -156,6 +185,7 @@ void AiMidiComposerEditor::resized() {
 void AiMidiComposerEditor::textEditorTextChanged(juce::TextEditor&) {
     const bool hasText = !promptBox_.getText().trim().isEmpty();
     generateButton_.setEnabled(hasText);
+    regenButton_.setEnabled(hasText && pianoRoll_.hasSelection());
 }
 
 void AiMidiComposerEditor::textEditorReturnKeyPressed(juce::TextEditor&) {
@@ -200,6 +230,85 @@ void AiMidiComposerEditor::onGenerate() {
     statusLabel_.setText("Done", juce::dontSendNotification);
     statusLabel_.setColour(juce::Label::textColourId, dimColor);
     generateButton_.setEnabled(true);
+
+    // Clear any prior diff state after a new generation
+    diffBeforeNotes_.clear();
+    diffMode_ = false;
+    diffButton_.setButtonText("Show Diff");
+    diffButton_.setEnabled(false);
+}
+
+// ---------------------------------------------------------------------------
+// Regenerate Region (W5 - Smart Regeneration)
+// ---------------------------------------------------------------------------
+void AiMidiComposerEditor::onRegenerate() {
+    if (!pianoRoll_.hasSelection()) {
+        statusLabel_.setText("Select a region first", juce::dontSendNotification);
+        return;
+    }
+
+    auto prompt = promptBox_.getText().trim();
+    if (prompt.isEmpty()) {
+        statusLabel_.setText("Enter a prompt", juce::dontSendNotification);
+        return;
+    }
+
+    // Save before notes for diff
+    diffBeforeNotes_ = pianoRoll_.getNotes();
+
+    const auto barStart = pianoRoll_.getSelectedBarStart();
+    const auto barEnd   = pianoRoll_.getSelectedBarEnd();
+
+    statusLabel_.setText("Regenerating region...", juce::dontSendNotification);
+    statusLabel_.setColour(juce::Label::textColourId, accentColor);
+    regenButton_.setEnabled(false);
+    generateButton_.setEnabled(false);
+
+    CompositionRequest req;
+    req.seed = static_cast<std::uint64_t>(seedSlider_.getValue());
+    req.prompt = (prompt + " (regenerate bars " + std::to_string(barStart)
+                  + "-" + std::to_string(barEnd) + ")").toStdString();
+
+    auto result = proc_.engineBridge().generateVariations(req);
+
+    if (result.success && !result.smf_midi.empty()) {
+        auto newNotes = PianoRollComponent::parseSmfToNotes(result.smf_midi, 480);
+        pianoRoll_.setNotes(newNotes);
+        pianoRoll_.showDiff(diffBeforeNotes_, newNotes);
+        pianoRoll_.clearSelection();
+
+        diffMode_ = true;
+        diffButton_.setButtonText("Hide Diff");
+        diffButton_.setEnabled(true);
+        statusLabel_.setText("Region regenerated", juce::dontSendNotification);
+    } else {
+        const auto& err = result.error;
+        statusLabel_.setText(err.empty() ? "Regeneration failed" : err,
+                             juce::dontSendNotification);
+        diffBeforeNotes_.clear();
+        diffMode_ = false;
+        diffButton_.setButtonText("Show Diff");
+        diffButton_.setEnabled(false);
+    }
+
+    statusLabel_.setColour(juce::Label::textColourId, dimColor);
+    regenButton_.setEnabled(pianoRoll_.hasSelection()
+                            && !promptBox_.getText().trim().isEmpty());
+    generateButton_.setEnabled(true);
+}
+
+// ---------------------------------------------------------------------------
+// Diff toggle
+// ---------------------------------------------------------------------------
+void AiMidiComposerEditor::onDiffToggle() {
+    diffMode_ = !diffMode_;
+    if (diffMode_) {
+        pianoRoll_.showDiff(diffBeforeNotes_, pianoRoll_.getNotes());
+        diffButton_.setButtonText("Hide Diff");
+    } else {
+        pianoRoll_.clearDiff();
+        diffButton_.setButtonText("Show Diff");
+    }
 }
 
 // ---------------------------------------------------------------------------
