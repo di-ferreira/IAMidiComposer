@@ -1,3 +1,4 @@
+#include <aimidi/core/Tracy.hpp>
 #include <aimidi/theory/IDrumEngine.hpp>
 #include <random>
 #include <array>
@@ -29,6 +30,7 @@ MidiEvent make_drum(std::uint32_t tick, std::uint8_t note, std::uint8_t velocity
 class DrumEngine final : public IDrumEngine {
 public:
     std::vector<MidiEvent> generate(const ChordRequest& req, const DrumStyle& style) const override {
+        ZoneScoped;
         std::vector<MidiEvent> out;
         out.reserve(64);
 

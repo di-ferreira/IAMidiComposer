@@ -1,4 +1,5 @@
 // Implementation: BassEngine — seed-deterministic bass line patterns.
+#include <aimidi/core/Tracy.hpp>
 #include <aimidi/theory/IBassEngine.hpp>
 #include <aimidi/theory/Types.hpp>
 #include <random>
@@ -51,6 +52,7 @@ int walking_note(int root_pc, int choice, std::mt19937_64& rng) {
 class BassEngine final : public IBassEngine {
 public:
     std::vector<MidiEvent> generate(const ChordRequest& req, const BassStyle& style) const override {
+        ZoneScoped;
         std::vector<MidiEvent> out;
 
         for (std::size_t i = 0; i < req.chords.size(); ++i) {

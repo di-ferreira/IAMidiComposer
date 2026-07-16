@@ -120,3 +120,11 @@ if(AIMIDI_BUILD_CLI)
     target_compile_features(dsp_cli PRIVATE cxx_std_20)
     install(TARGETS dsp_cli RUNTIME DESTINATION bin)
 endif()
+
+# --- Tracy profiling ------------------------------------------
+option(AIMIDI_USE_TRACY "Enable Tracy profiling" OFF)
+if(AIMIDI_USE_TRACY)
+    target_compile_definitions(aimidi_mte PRIVATE AIMIDI_USE_TRACY)
+    find_package(Tracy REQUIRED)
+    target_link_libraries(aimidi_mte PRIVATE Tracy::TracyClient)
+endif()

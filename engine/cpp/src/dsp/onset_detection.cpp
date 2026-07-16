@@ -1,3 +1,4 @@
+#include <aimidi/core/Tracy.hpp>
 #include <aimidi/dsp/OnsetDetection.hpp>
 #include <aimidi/dsp/FFT.hpp>
 #include <aimidi/dsp/Windows.hpp>
@@ -20,6 +21,7 @@ OnsetDetection::OnsetDetection(std::size_t fftSize, std::size_t hopSize)
 }
 
 void OnsetDetection::process(const float* audio, std::size_t numSamples, float /*sampleRate*/) {
+    ZoneScoped;
     std::size_t nFrames = (numSamples < fftSize_) ? 0
                         : ((numSamples - fftSize_) / hopSize_) + 1;
 

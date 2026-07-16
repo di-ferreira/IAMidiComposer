@@ -7,6 +7,7 @@
 //   - Full nearest-voice voice leading is deferred to Sprint 5 (IPianoEngine).
 //
 // Determinism: same seed → identical byte output (std::mt19937_64, no time).
+#include <aimidi/core/Tracy.hpp>
 #include <aimidi/theory/IChordEngine.hpp>
 #include <random>
 #include <array>
@@ -62,6 +63,7 @@ void apply_inversion(std::vector<int>& notes, int inv) {
 class ChordEngine final : public IChordEngine {
 public:
     std::vector<MidiEvent> voicing(const ChordRequest& req) const override {
+        ZoneScoped;
         std::mt19937_64 rng(req.seed);
         std::vector<MidiEvent> out;
         out.reserve(req.chords.size() * 4);

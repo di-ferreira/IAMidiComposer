@@ -5,6 +5,7 @@
 // Right hand plays full chord voicing in the treble register (channel 0).
 //
 // Determinism: same seed -> identical output (std::mt19937_64, no time).
+#include <aimidi/core/Tracy.hpp>
 #include <aimidi/theory/IPianoEngine.hpp>
 #include <random>
 #include <array>
@@ -59,6 +60,7 @@ constexpr bool in_piano_range(int note) {
 class PianoEngine final : public IPianoEngine {
 public:
     std::vector<MidiEvent> generate(const PianoRequest& req) const override {
+        ZoneScoped;
         std::vector<MidiEvent> out;
         const auto& chords = req.chord_req.chords;
         const int ppq = static_cast<int>(req.chord_req.ppq);

@@ -1,3 +1,4 @@
+#include <aimidi/core/Tracy.hpp>
 #include <aimidi/dsp/FFT.hpp>
 #include <cassert>
 #include <numeric>
@@ -25,6 +26,7 @@ FFT::FFT(std::size_t size) : size_(size) {
 }
 
 void FFT::forward(const float* input, std::complex<float>* output) const {
+    ZoneScoped;
     for (std::size_t i = 0; i < size_; ++i)
         output[i] = std::complex<float>(input[rev_[i]], 0.0f);
 
@@ -43,6 +45,7 @@ void FFT::forward(const float* input, std::complex<float>* output) const {
 }
 
 void FFT::inverse(const std::complex<float>* input, float* output) const {
+    ZoneScoped;
     auto buf = std::make_unique<std::complex<float>[]>(size_);
     for (std::size_t i = 0; i < size_; ++i)
         buf[i] = std::conj(input[rev_[i]]);

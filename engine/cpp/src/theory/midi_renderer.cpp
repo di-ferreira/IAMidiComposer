@@ -2,6 +2,7 @@
 //
 // Converts tick-based MidiEvents into a complete .mid byte stream.
 // Big-endian, VLQ-encoded delta times, tempo track first.
+#include <aimidi/core/Tracy.hpp>
 #include <aimidi/theory/IMidiRenderer.hpp>
 #include <algorithm>
 #include <array>
@@ -74,6 +75,7 @@ struct WireEvent {
 class MidiRenderer final : public IMidiRenderer {
 public:
     std::vector<std::uint8_t> render(const SmfComposition& comp) const override {
+        ZoneScoped;
         std::vector<std::uint8_t> out;
         out.reserve(4096);
 

@@ -9,6 +9,7 @@
 //
 // TODO (Sprint 5): full voice-leading, IPianoEngine, IPiano voicings.
 // TODO (Sprint 6): SMF rendering via MIDIRenderEngine.
+#include <aimidi/core/Tracy.hpp>
 #include <aimidi/theory/IHarmonyEngine.hpp>
 #include <aimidi/theory/IScaleProvider.hpp>
 #include <aimidi/theory/IChordEngine.hpp>
@@ -61,6 +62,7 @@ public:
         , chords_(std::move(chords)) {}
 
     std::vector<MidiEvent> generate(const HarmonyRequest& req) const override {
+        ZoneScoped;
         std::mt19937_64 rng(req.seed);
         (void)rng; // reserved for future per-bar jitter; deterministic.
 
