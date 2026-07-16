@@ -14,13 +14,15 @@ import (
 )
 
 // WorkflowManager orchestrates all composition workflows,
-// delegating to the mte_cli subprocess for actual MIDI generation.
+// delegating to the mte_cli subprocess for actual MIDI generation
+// and the dsp_cli subprocess for audio analysis.
 //
 // Thread-safety: all exported methods are safe for concurrent use
 // as long as each context carries its own cancellation; the manager
 // itself holds no mutable shared state.
 type WorkflowManager struct {
 	mteCliPath string
+	dspCliPath string
 	tmpDir     string
 	logger     *slog.Logger
 	ctxRepo    *store.ContextRepository
@@ -32,6 +34,10 @@ func New(logger *slog.Logger, s *store.Store) *WorkflowManager {
 	mtePath := os.Getenv("MTE_CLI_PATH")
 	if mtePath == "" {
 		mtePath = "mte_cli"
+	}
+	dspPath := os.Getenv("DSP_CLI_PATH")
+	if dspPath == "" {
+		dspPath = "dsp_cli"
 	}
 	tmpDir := os.Getenv("AIMIDI_TMPDIR")
 	if tmpDir == "" {
@@ -48,6 +54,7 @@ func New(logger *slog.Logger, s *store.Store) *WorkflowManager {
 	}
 	return &WorkflowManager{
 		mteCliPath: mtePath,
+		dspCliPath: dspPath,
 		tmpDir:     tmpDir,
 		logger:     logger,
 		ctxRepo:    ctxRepo,
