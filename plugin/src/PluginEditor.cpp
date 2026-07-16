@@ -81,6 +81,9 @@ AiMidiComposerEditor::AiMidiComposerEditor(AiMidiComposerProcessor& p)
     statusLabel_.setColour(juce::Label::textColourId, dimColor);
     addAndMakeVisible(statusLabel_);
 
+    // ---- Piano roll --------------------------------------------------------
+    addAndMakeVisible(pianoRoll_);
+
     // ---- Listeners ---------------------------------------------------------
     promptBox_.addListener(this);
     historyBox_.addListener(this);
@@ -141,6 +144,10 @@ void AiMidiComposerEditor::resized() {
     generateButton_.setBounds(bottomRow.removeFromLeft(120));
     bottomRow.removeFromLeft(10);
     statusLabel_.setBounds(bottomRow);
+
+    // Piano roll takes the remaining space
+    area.removeFromTop(10);
+    pianoRoll_.setBounds(area);
 }
 
 // ---------------------------------------------------------------------------
@@ -166,7 +173,7 @@ void AiMidiComposerEditor::comboBoxChanged(juce::ComboBox* box) {
     if (box == &historyBox_) {
         auto idx = historyBox_.getSelectedItemIndex();
         if (idx >= 0 && idx < promptHistory_.size()) {
-            promptBox_.setText(promptHistory_[idx], juce::sendNotificationAsync);
+            promptBox_.setText(promptHistory_[idx], true);
         }
     } else if (box == &workflowSelector_) {
         saveState();

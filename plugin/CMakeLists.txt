@@ -31,6 +31,7 @@ target_sources(ai_midi_composer PRIVATE
     src/PluginProcessor.cpp
     src/PluginEditor.cpp
     src/PluginEditor.hpp
+    src/ui/PianoRollComponent.cpp
     src/engine/StubEngineBridge.cpp)
 
 target_compile_definitions(ai_midi_composer PRIVATE

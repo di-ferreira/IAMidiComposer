@@ -1,6 +1,7 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "PluginProcessor.hpp"
+#include "ui/PianoRollComponent.hpp"
 
 namespace aimidi::plugin {
 
@@ -28,6 +29,9 @@ private:
     // History
     juce::ComboBox            historyBox_;
     juce::Array<juce::String> promptHistory_;
+
+    // Piano roll
+    PianoRollComponent pianoRoll_;
 
     // State
     juce::ValueTree state_;
