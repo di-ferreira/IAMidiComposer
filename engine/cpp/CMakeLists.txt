@@ -33,6 +33,8 @@ set(MTE_SOURCES
     src/dsp/windows.cpp
     src/dsp/onset_detection.cpp
     src/dsp/biquad_filter.cpp
+    src/dsp/key_detection.cpp
+    src/dsp/chord_detection.cpp
 )
 
 set(MTE_HEADERS
@@ -67,6 +69,8 @@ set(MTE_HEADERS
     include/aimidi/dsp/Windows.hpp
     include/aimidi/dsp/OnsetDetection.hpp
     include/aimidi/dsp/BiquadFilter.hpp
+    include/aimidi/dsp/KeyDetection.hpp
+    include/aimidi/dsp/ChordDetection.hpp
 )
 
 # --- Library target ------------------------------------------

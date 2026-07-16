@@ -34,6 +34,8 @@ set(MTE_TESTS
     test_reharmonize_engine.cpp
     test_orchestrate_workflow.cpp
     test_dsp.cpp
+    test_key_detection.cpp
+    test_chord_detection.cpp
 )
 
 add_executable(aimidi_mte_tests ${MTE_TESTS})
