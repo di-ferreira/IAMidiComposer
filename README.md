@@ -1,231 +1,122 @@
-# AI MIDI Composer (Open Source MVP)
+# AI MIDI Composer
 
-Plataforma Open Source de composição musical assistida por IA, 100% offline.
-A IA interpreta intenção; uma Music Theory Engine determinística gera MIDI reproduzível por seed.
-O usuário mantém controle total na sua DAW favorita.
+[![CI](https://github.com/di-ferreira/IAMidiComposer/actions/workflows/ci.yml/badge.svg)](https://github.com/di-ferreira/IAMidiComposer/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.1.0--alpha-green)](https://github.com/di-ferreira/IAMidiComposer/releases/tag/v0.1.0)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C)](https://en.cppreference.com/w/cpp/20)
+[![Go](https://img.shields.io/badge/Go-1.22+-00ADD8)](https://go.dev/)
+[![JUCE](https://img.shields.io/badge/JUCE-7.0.12-8B5CFE)](https://juce.com/)
 
----
-
-## Estado atual (baseline M0 — 09/07/2026)
-
-| Componente | Estado |
-|---|---|
-| Workspace de agentes (38 = 14 primários + 24 subagentes) | ✅ |
-| Skills (56) e registries YAML (5) | ✅ |
-| Build C++ verde: `libaimidi_mte.a` + GoogleTest | ✅ |
-| `proto/aimidi/v1/aimidi.proto` (3/10 RPCs) | ⚠️ |
-| `engine/cpp/MTE` — apenas `ScaleProvider` real; `HarmonyEngine` = stub | ⚠️ |
-| `engine/go/ACE` — `main.go` só `select{}` | ❌ |
-| `plugin/` JUCE VST3 — `processBlock` só `buffer.clear()` | ⚠️ |
-| CI — 4 jobs (cpp/go bloqueantes, plugin/lint não-bloqueantes), Ubuntu only | ⚠️ |
-| SQLite, IA (llama.cpp/ONNX), Audio Analysis | ❌ |
-
-**Completude aproximada: ~16%** — ver análise do CTO em [`docs/roadmap/ROADMAP.md`](docs/roadmap/ROADMAP.md).
+**AI MIDI Composer** is an open-source, 100% offline AI-assisted music composition platform. The AI interprets your musical intent; a deterministic Music Theory Engine generates seed-reproducible MIDI. You keep full creative control in your DAW.
 
 ---
 
-## Objetivos do MVP
+## Quick Start
 
-- 100% Offline
-- Open Source (MIT ou Apache 2.0)
-- Multiplataforma
-- Alto desempenho
-- Modular
-- Compatível com qualquer DAW VST3
-- Sem dependência de APIs
-- IA apenas para decisões criativas
-- Engine determinística para geração musical
+```bash
+# Build from source
+git clone https://github.com/di-ferreira/IAMidiComposer.git
+cd IAMidiComposer
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j$(nproc)
 
----
+# Download AI models (first run only)
+./scripts/install_models.sh
 
-## Stack Tecnológica
+# Generate your first composition via CLI
+./build/bin/mte_cli --prompt "upbeat pop in C major, 8 bars" --seed 42 --output my_song.mid
+```
 
-### Linguagens
-
-| Camada         | Tecnologia      |
-| -------------- | --------------- |
-| Plugin         | C++20           |
-| Engine Musical | C++20           |
-| MIDI Engine    | C++20           |
-| Engine de IA   | Go              |
-| Comunicação    | gRPC + Protobuf |
-
-### Frameworks
-
-| Tecnologia     | Uso                |
-| -------------- | ------------------ |
-| JUCE           | Plugin VST3        |
-| llama.cpp      | Inferência local   |
-| ONNX Runtime   | Modelos auxiliares |
-| SQLite         | Banco local        |
-| spdlog         | Logs               |
-| GoogleTest     | Testes             |
-| CMake          | Build              |
-| GitHub Actions | CI/CD              |
+Full guide: [`QUICKSTART.md`](QUICKSTART.md)
 
 ---
 
-## Arquitetura Geral
+## Features
 
-```text
-┌───────────────────────────────────────────────────────────────────────┐
-│                           DAW (Host)                                   │
-│      Reaper | Cubase | Studio One | FL | Ableton | Bitwig              │
-└───────────────────────────────────────────────────────────────────────┘
+- **10 Composition Workflows** — New Composition, Instrument Composer, Audio Assisted Composer, Continue Composition, Smart Regeneration, Generate Variations, Replace Instrument, Reharmonize, Orchestrate, Arrange
+- **Music Theory Engine** — Harmony, Chords, Voice Leading, Counterpoint, Melody, Rhythm, Bass, Drums, Guitar, Piano, Strings, Orchestration, Humanization
+- **Musical Intelligence** — Natural language prompt interpretation, style/mood detection, blueprint generation, timeline planning, arrangement planning
+- **DSP Engine** — FFT, onset detection, tempo tracking, key detection, chord detection
+- **VST3 Plugin** — Dark theme, piano roll preview, prompt history, workflow selector, drag-and-drop SMF export
+- **100% Offline** — Local AI (llama.cpp GGUF + ONNX Runtime), no cloud dependencies
+- **Seed-Deterministic** — Same seed + same prompt = identical MIDI output
+- **Cross-Platform** — Linux, macOS, Windows
+- **CLI & Plugin** — Use from terminal or inside your DAW
+
+---
+
+## Architecture
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                          DAW (VST3 Host)                           │
+│     Cubase · Reaper · Studio One · FL Studio · Ableton · Bitwig    │
+└────────────────────────────────────────────────────────────────────┘
                                │
                                ▼
-┌───────────────────────────────────────────────────────────────────────┐
-│                    AI MIDI Plugin (JUCE / C++)                        │
-│ • Prompt UI • Piano Roll Preview • Workflow Manager • Settings        │
-└───────────────────────────────────────────────────────────────────────┘
-                               │  gRPC local (unix socket / named pipe)
-                               ▼
-╔══════════════════════════════════════════════════════════════════════╗
-║                  AI COMPOSITION ENGINE (ACE) — Go                     ║
-╠═══════════════════════════════════════════════════════════════════[...║
-║ 1. Shared Musical Context (SMC) — SQLite                              ║
-║    Tempo · Tom · Escala · Estrutura · Progressão · Instrumentos ·     ║
-║    Histórico · Preferências · Locks                                   ║
-╠═══════════════════════════════════════════════════════════════════════╣
-║ 2. Musical Intelligence (MI) — llama.cpp/ONNX local                   ║
-║    Prompt Interpreter · Style/Gerne/Mood Detection · Blueprint Gen    ║
-║    → Music Blueprint                                                  ║
-╠═══════════════════════════════════════════════════════════════════════╣
-║ 3. Musical Planning Layer (MPL)                                       ║
-║    Timeline · Section · Track · Instrument · Chord/Rhythm/Melody BP   ║
-╠═══════════════════════════════════════════════════════════════════════╣
-║ 4. Music Theory Engine (MTE) — C++20 (gRPC server, ADR-0001)          ║
-║    Harmony · Chords · Voice Leading · Counterpoint · Melody ·         ║
-║    Rhythm · Bass · Drum · Guitar · Piano · Strings · Humanization     ║
-╠═══════════════════════════════════════════════════════════════════════╣
-║ 5. MIDI Rendering Engine (MRE) — SMF1 export + live event stream      ║
-╠═══════════════════════════════════════════════════════════════════════╣
-║ 6. Audio Intelligence Layer (AIL) — BPM/Key/Chord/Beat detection      ║
-╠═══════════════════════════════════════════════════════════════════════╣
-║ 7. Instrument Integration Layer (IIL) — Scanner · DB · Mapper ·       ║
-║    Preset Manager · Templates por estilo                              ║
-╚═══════════════════════════════════════════════════════════════════════╝
-```
-
-> Boundary C++ (MTE) ↔ Go (ACE) via gRPC local — ver [`ADR-0001`](docs/adr/ADR-0001-boundary-cpp-go.md).
-
----
-
-## Fluxo
-
-```text
-Prompt
-
-↓
-
-Musical Intelligence
-
-↓
-
-Music Blueprint
-
-↓
-
-Planning Layer
-
-↓
-
-Music Theory Engine
-
-↓
-
-MIDI Rendering Engine
-
-↓
-
-Shared Musical Context
-
-↓
-
-Plugin
-
-↓
-
-Usuário
+┌────────────────────────────────────────────────────────────────────┐
+│                   AI MIDI Plugin (JUCE / C++)                      │
+│  Prompt UI · Piano Roll · Workflow Selector · Region Editor        │
+│  Preset Manager · Plugin Scanner · Settings                        │
+└───────────┬────────────────────────────────────────────────────────┘
+            │ gRPC (Unix socket / named pipe)
+            ▼
+╔════════════════════════════════════════════════════════════════════╗
+║              AI Composition Engine (ACE) — Go                     ║
+╠════════════════════════════════════════════════════════════════════╣
+║  Shared Musical Context (SQLite) · Musical Intelligence            ║
+║  Workflow Manager · Prompt Interpreter · Style Detector            ║
+║  Blueprint Generator · Audio Analysis Layer                        ║
+╚════════════════════════════════════════════════════════════════════╝
+            │ gRPC (Unix socket / named pipe)
+            ▼
+╔════════════════════════════════════════════════════════════════════╗
+║            Music Theory Engine (MTE) — C++20                      ║
+╠════════════════════════════════════════════════════════════════════╣
+║  Harmony · Chords · Bass · Drums · Piano · Guitar · Strings       ║
+║  Counterpoint · Orchestration · Modulation · Humanization          ║
+║  MIDI Rendering Engine → SMF / event stream                       ║
+╚════════════════════════════════════════════════════════════════════╝
 ```
 
 ---
 
-## Workflows (10)
+## Documentation
 
-1. New Composition
-2. Instrument Composer
-3. Audio Assisted Composer
-4. Continue Composition
-5. Smart Regeneration
-6. Generate Variations
-7. Replace Instrument
-8. Reharmonize
-9. Orchestrate
-10. Arrange
-
-Detalhes em [`docs/workflows/`](docs/workflows/) e registry em [`.opencode/registry/workflows.yaml`](.opencode/registry/workflows.yaml).
-
-**Status atual: 0/10 workflows implementados** (apenas 3/10 têm RPC declarado no `.proto`).
+| Resource | Description |
+|---|---|
+| [`QUICKSTART.md`](QUICKSTART.md) | 5-minute setup guide |
+| [`CONTEXT.md`](CONTEXT.md) | Mission, philosophy, scope, objectives |
+| [`CHANGELOG.md`](CHANGELOG.md) | Release history |
+| [`docs/adr/`](docs/adr/) | Architecture Decision Records |
+| [`docs/roadmap/ROADMAP.md`](docs/roadmap/ROADMAP.md) | Full roadmap M0–M7 |
+| [`docs/benchmarks/`](docs/benchmarks/) | Performance benchmarks |
+| [`docs/workflows/`](docs/workflows/) | Workflow documentation |
+| [`standards/`](standards/) | Architecture & code standards |
+| [`proto/aimidi/v1/`](proto/aimidi/v1/) | Protocol Buffers schema |
 
 ---
 
-## Roadmap
+## Stack
 
-O roadmap canônico completo está em [`docs/roadmap/ROADMAP.md`](docs/roadmap/ROADMAP.md).
-A tabela abaixo resume os milestones M0–M7:
-
-| Milestone | Fase | Status |
-|---|---|---|
-| **M0** — Fundação + contratos | Fase 0 | ⚠️ Em curso |
-| **M1** — Foundation (gRPC, SQLite, DI, plugin bridge) | Fase 1 | ❌ Não iniciada |
-| **M2** — Spike pop/rock MTE completo (primeiro som) | Fase 2 | ❌ |
-| **M3** — Musical Intelligence local (prompt NL → blueprint) | Fase 3 | ❌ |
-| **M4** — MTE horizontal (todos instrumentos/modos) | Fase 4 | ❌ |
-| **M5** — Audio Engine (Workflow 3) | Fase 5 | ❌ |
-| **M6** — Plugin UI + Piano Roll + DX | Fase 6 | ❌ |
-| **M7** — Hardening + bench + release v0.1.0 | Fase 7 | ❌ |
-
-Resumo executivo: 3/63 checkboxes do MVP **feitas**; 14 **parciais**; 46 **não feitas**.
+| Layer | Technology |
+|---|---|
+| Plugin | C++20, JUCE 7.0.12 |
+| Music Engine | C++20 (concepts, ranges, constexpr) |
+| AI Engine | Go 1.22+, gRPC, modernc.org/sqlite |
+| Local AI | llama.cpp (GGUF), ONNX Runtime |
+| Build | CMake 3.29+, Ninja |
+| Tests | GoogleTest, Go table-driven tests |
+| CI/CD | GitHub Actions (Linux, macOS, Windows) |
 
 ---
 
-## Observação técnica sobre o MVP
+## License
 
-Para manter o escopo controlado e entregar valor rapidamente, o MVP foca nos seguintes
-módulos musicais:
-
-- **Chord Engine**
-- **Bass Engine**
-- **Drum Engine**
-- **Melody Engine**
-- **Shared Musical Context**
-- **New Composition**, **Instrument Composer** e **Audio Assisted Composer**
-
-Os demais workflows (Continue Composition, Smart Regeneration, Reharmonize, Orchestrate
-etc.) serão implementados sobre essa mesma base arquitetural, sem necessidade de
-refatoração. Essa abordagem entrega um núcleo sólido, útil para a comunidade open source
-e preparado para evoluir gradualmente sem comprometer a arquitetura inicial. Ver
-[`docs/roadmap/ROADMAP.md`](docs/roadmap/ROADMAP.md) para o plano detalhado.
+Apache 2.0. See [LICENSE](LICENSE).
 
 ---
 
-## Documentação
+## Contributing
 
-- [`CONTEXT.md`](CONTEXT.md) — missão, filosofia, escopo, objetivos.
-- [`docs/roadmap/ROADMAP.md`](docs/roadmap/ROADMAP.md) — roadmap canônico M0–M7.
-- [`docs/adr/`](docs/adr/) — Architecture Decision Records (ADR-0001 aceito).
-- [`docs/architecture/overview.md`](docs/architecture/overview.md) — visão arquitetural (placeholder).
-- [`docs/workflows/`](docs/workflows/) — um documento por workflow (a criar).
-- [`standards/`](standards/) — padrões arquiteturais e de código.
-- [`prompts/master_prompt.md`](prompts/master_prompt.md) — prompt-fonte canônico dos agentes.
-- [`.opencode/`](.opencode/) — workspace de agentes, subagentes, skills e registries.
-
----
-
-## Contribuir
-
-Ainda não há `CONTRIBUTING.md` formal (previsto na Fase 12). Ver
-[`standards/branching.md`](standards/branching.md),
-[`standards/pull_request.md`](standards/pull_request.md) e
-[`standards/commits.md`](standards/commits.md) para padrões em uso.
+See [`standards/branching.md`](standards/branching.md), [`standards/pull_request.md`](standards/pull_request.md), and [`standards/commits.md`](standards/commits.md) for contribution guidelines.
