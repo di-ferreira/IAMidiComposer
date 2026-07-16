@@ -57,6 +57,10 @@ public:
     const IEngineBridge& engineBridge() const noexcept { return *engine_bridge_; }
     IEngineBridge& engineBridge() noexcept { return *engine_bridge_; }
 
+    // ---- State (ValueTree, serialised by DAW preset) ----------------------
+    juce::ValueTree getState() const { return state_; }
+    void setState(const juce::ValueTree& state) { state_ = state; }
+
     // ---- MIDI out enqueue (Message Thread) --------------------------------
     // Called by the engine bridge callback (or a UI-driven preview) when the
     // engine returns MIDI events. Pushes into the SPSC FIFO for the Audio
@@ -85,6 +89,10 @@ private:
     // `processBlock`. It is here purely for future message-thread state
     // exchanges between the editor and a bridge worker.
     juce::CriticalSection config_lock_;
+
+    // Persisted UI/project state — serialised via getStateInformation /
+    // setStateInformation so the DAW can restore it with project presets.
+    juce::ValueTree state_;
 };
 
 } // namespace aimidi::plugin

@@ -24,12 +24,20 @@ juce_add_plugin(ai_midi_composer
     IS_SYNTH                   FALSE
     NEEDS_MIDI_INPUT           TRUE
     NEEDS_MIDI_OUTPUT          TRUE
-    COPY_PLUGIN_AFTER_BUILD    TRUE)
+    COPY_PLUGIN_AFTER_BUILD    TRUE
+    NEEDS_CURL                 FALSE)
 
 target_sources(ai_midi_composer PRIVATE
     src/PluginProcessor.cpp
     src/PluginEditor.cpp
+    src/PluginEditor.hpp
     src/engine/StubEngineBridge.cpp)
+
+target_compile_definitions(ai_midi_composer PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_ALSA=0
+    JUCE_JACK=0)
 
 target_compile_features(ai_midi_composer PRIVATE cxx_std_20)
 
@@ -39,7 +47,7 @@ target_include_directories(ai_midi_composer PRIVATE
 target_link_libraries(ai_midi_composer PRIVATE
     juce::juce_audio_utils
     juce::juce_dsp
-    juce::juce_gui_extra
+    juce::juce_gui_basics
     PUBLIC
     juce_recommended_config_flags
     juce_recommended_lto_flags

@@ -18,6 +18,7 @@ AiMidiComposerProcessor::AiMidiComposerProcessor()
           .withOutput("Output", juce::AudioChannelSet::stereo(), true)) {
     // Message Thread: heap allocation of the stub bridge is permitted here.
     engine_bridge_ = make_stub_engine_bridge();
+    state_ = juce::ValueTree("AiMidiComposerState");
 }
 
 AiMidiComposerProcessor::~AiMidiComposerProcessor() = default;
@@ -97,8 +98,16 @@ void AiMidiComposerProcessor::enqueueMidiEvents(
 bool AiMidiComposerProcessor::hasEditor() const { return true; }
 // createEditor() is implemented in PluginEditor.cpp.
 
-void AiMidiComposerProcessor::getStateInformation(juce::MemoryBlock&) {}
-void AiMidiComposerProcessor::setStateInformation(const void*, int) {}
+void AiMidiComposerProcessor::getStateInformation(juce::MemoryBlock& destData) {
+    auto copy = state_.createCopy();
+    if (auto xml = copy.createXml())
+        copyXmlToBinary(*xml, destData);
+}
+
+void AiMidiComposerProcessor::setStateInformation(const void* data, int sizeInBytes) {
+    if (auto xml = getXmlFromBinary(data, sizeInBytes))
+        state_ = juce::ValueTree::fromXml(*xml);
+}
 
 bool AiMidiComposerProcessor::canAddBus(bool) const { return false; }
 bool AiMidiComposerProcessor::isBusesLayoutSupported(const BusesLayout&) const { return true; }
