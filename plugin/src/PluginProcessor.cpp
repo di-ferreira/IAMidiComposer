@@ -15,7 +15,22 @@ namespace aimidi::plugin {
 
 AiMidiComposerProcessor::AiMidiComposerProcessor()
     : juce::AudioProcessor(BusesProperties()
-          .withOutput("Output", juce::AudioChannelSet::stereo(), true)) {
+          .withOutput("Output", juce::AudioChannelSet::stereo(), true))
+    , apvts_(*this, nullptr, "Parameters",
+        {
+            std::make_unique<juce::AudioParameterInt>(
+                paramSeed, "Seed", 0, 999999, 42),
+            std::make_unique<juce::AudioParameterFloat>(
+                paramDensity, "Density", 0.0f, 1.0f, 0.5f),
+            std::make_unique<juce::AudioParameterFloat>(
+                paramEnergy, "Energy", 0.0f, 1.0f, 0.5f),
+            std::make_unique<juce::AudioParameterFloat>(
+                paramComplexity, "Complexity", 0.0f, 1.0f, 0.5f),
+            std::make_unique<juce::AudioParameterInt>(
+                paramBPM, "BPM", 60, 200, 120),
+            std::make_unique<juce::AudioParameterInt>(
+                paramBars, "Bars", 1, 64, 8),
+        }) {
     // Message Thread: heap allocation of the stub bridge is permitted here.
     engine_bridge_ = make_stub_engine_bridge();
     state_ = juce::ValueTree("AiMidiComposerState");
@@ -99,14 +114,24 @@ bool AiMidiComposerProcessor::hasEditor() const { return true; }
 // createEditor() is implemented in PluginEditor.cpp.
 
 void AiMidiComposerProcessor::getStateInformation(juce::MemoryBlock& destData) {
-    auto copy = state_.createCopy();
-    if (auto xml = copy.createXml())
+    auto state = apvts_.copyState();
+    auto editorCopy = state_.createCopy();
+    if (editorCopy.isValid())
+        state.addChild(editorCopy, -1, nullptr);
+    if (auto xml = state.createXml())
         copyXmlToBinary(*xml, destData);
 }
 
 void AiMidiComposerProcessor::setStateInformation(const void* data, int sizeInBytes) {
-    if (auto xml = getXmlFromBinary(data, sizeInBytes))
-        state_ = juce::ValueTree::fromXml(*xml);
+    if (auto xml = getXmlFromBinary(data, sizeInBytes)) {
+        auto state = juce::ValueTree::fromXml(*xml);
+        if (state.isValid()) {
+            apvts_.replaceState(state);
+            auto editorChild = state.getChildWithName("AiMidiComposerState");
+            if (editorChild.isValid())
+                state_ = editorChild;
+        }
+    }
 }
 
 bool AiMidiComposerProcessor::canAddBus(bool) const { return false; }

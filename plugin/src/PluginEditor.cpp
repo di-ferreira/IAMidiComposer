@@ -7,6 +7,7 @@ static const auto fgColor       = juce::Colour::fromRGB(220, 220, 220);
 static const auto accentColor   = juce::Colour::fromRGB(0, 180, 255);
 static const auto dimColor      = juce::Colour::fromRGB(120, 120, 120);
 static const auto warnColor     = juce::Colour::fromRGB(255, 180, 0);
+static const auto altColor      = juce::Colour::fromRGB(0, 200, 120);
 
 // ---------------------------------------------------------------------------
 // Constructor
@@ -53,7 +54,6 @@ AiMidiComposerEditor::AiMidiComposerEditor(AiMidiComposerProcessor& p)
 
     // ---- Seed slider -------------------------------------------------------
     seedSlider_.setRange(0.0, 999999.0, 1.0);
-    seedSlider_.setValue(42.0, juce::dontSendNotification);
     seedSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 80, 20);
     seedSlider_.setColour(juce::Slider::backgroundColourId,
                           juce::Colour::fromRGB(48, 48, 52));
@@ -67,6 +67,37 @@ AiMidiComposerEditor::AiMidiComposerEditor(AiMidiComposerProcessor& p)
     seedLabel_.setColour(juce::Label::textColourId, fgColor);
     addAndMakeVisible(seedSlider_);
     addAndMakeVisible(seedLabel_);
+
+    // Attach seed slider to APVTS parameter (handles DAW automation)
+    seedAttachment_ = std::make_unique<
+        juce::AudioProcessorValueTreeState::SliderAttachment>(
+        proc_.apvts_, proc_.paramSeed, seedSlider_);
+
+    // ---- Preset selector ---------------------------------------------------
+    presetSelector_.setTextWhenNothingSelected("Presets");
+    presetSelector_.setColour(juce::ComboBox::backgroundColourId,
+                              juce::Colour::fromRGB(24, 24, 28));
+    presetSelector_.setColour(juce::ComboBox::textColourId, fgColor);
+    presetSelector_.setColour(juce::ComboBox::outlineColourId,
+                              juce::Colour::fromRGB(48, 48, 52));
+    presetSelector_.setColour(juce::ComboBox::buttonColourId, accentColor);
+    addAndMakeVisible(presetSelector_);
+
+    savePresetButton_.setColour(juce::TextButton::buttonColourId, altColor);
+    savePresetButton_.setColour(juce::TextButton::textColourOffId,
+                                juce::Colour::fromRGB(255, 255, 255));
+    addAndMakeVisible(savePresetButton_);
+
+    deletePresetButton_.setColour(juce::TextButton::buttonColourId,
+                                  juce::Colour::fromRGB(180, 60, 60));
+    deletePresetButton_.setColour(juce::TextButton::textColourOffId,
+                                  juce::Colour::fromRGB(255, 255, 255));
+    addAndMakeVisible(deletePresetButton_);
+
+    refreshPresetList();
+    presetSelector_.addListener(this);
+    savePresetButton_.onClick = [this] { onSavePreset(); };
+    deletePresetButton_.onClick = [this] { onDeletePreset(); };
 
     // ---- Generate button ---------------------------------------------------
     generateButton_.setColour(juce::TextButton::buttonColourId, accentColor);
@@ -108,7 +139,6 @@ AiMidiComposerEditor::AiMidiComposerEditor(AiMidiComposerProcessor& p)
     generateButton_.onClick = [this] { onGenerate(); };
     regenButton_.onClick    = [this] { onRegenerate(); };
     diffButton_.onClick     = [this] { onDiffToggle(); };
-    seedSlider_.onValueChange = [this] { saveState(); };
 
     // Selection callback - enable/disable regen button
     pianoRoll_.onSelectionChanged = [this] {
@@ -145,8 +175,14 @@ void AiMidiComposerEditor::paint(juce::Graphics& g) {
 void AiMidiComposerEditor::resized() {
     auto area = getLocalBounds().reduced(10);
 
-    // Top bar: title is drawn in paint; seed slider on the right
+    // Top bar: title drawn in paint; preset selector left, seed slider right
     auto topBar = area.removeFromTop(30);
+    auto presetArea = topBar.removeFromLeft(300);
+    presetSelector_.setBounds(presetArea.removeFromLeft(180));
+    presetArea.removeFromLeft(6);
+    savePresetButton_.setBounds(presetArea.removeFromLeft(90));
+    presetArea.removeFromLeft(4);
+    deletePresetButton_.setBounds(presetArea.removeFromLeft(80));
     auto seedArea = topBar.removeFromRight(250);
     seedLabel_.setBounds(seedArea.removeFromLeft(50));
     seedSlider_.setBounds(seedArea);
@@ -207,6 +243,8 @@ void AiMidiComposerEditor::comboBoxChanged(juce::ComboBox* box) {
         }
     } else if (box == &workflowSelector_) {
         saveState();
+    } else if (box == &presetSelector_) {
+        onPresetSelected();
     }
 }
 
@@ -378,8 +416,6 @@ void AiMidiComposerEditor::loadState() {
         juce::jlimit(0, workflowSelector_.getNumItems() - 1, lastWorkflow),
         juce::dontSendNotification);
 
-    auto lastSeed = static_cast<double>(state_.getProperty("lastSeed", 42));
-    seedSlider_.setValue(lastSeed, juce::dontSendNotification);
 }
 
 void AiMidiComposerEditor::saveState() {
@@ -393,9 +429,92 @@ void AiMidiComposerEditor::saveState() {
 
     state_.setProperty("lastPrompt", promptBox_.getText(), nullptr);
     state_.setProperty("lastWorkflow", workflowSelector_.getSelectedItemIndex(), nullptr);
-    state_.setProperty("lastSeed", static_cast<int>(seedSlider_.getValue()), nullptr);
 
     proc_.setState(state_);
+}
+
+// ---------------------------------------------------------------------------
+// Preset helpers
+// ---------------------------------------------------------------------------
+void AiMidiComposerEditor::refreshPresetList() {
+    presetSelector_.clear(juce::dontSendNotification);
+    auto names = presetManager_.getPresetNames();
+    for (auto& n : names)
+        presetSelector_.addItem(n, presetSelector_.getNumItems() + 1);
+
+    savePresetButton_.setEnabled(true);
+    deletePresetButton_.setEnabled(true);
+}
+
+void AiMidiComposerEditor::onPresetSelected() {
+    auto name = presetSelector_.getText();
+    if (name.isEmpty() || !presetManager_.hasPreset(name))
+        return;
+
+    auto preset = presetManager_.getPreset(name);
+    auto& apvts = proc_.apvts_;
+
+    // Apply APVTS parameter values from the preset state
+    auto& s = preset.state;
+    if (s.hasProperty("seed"))
+        *apvts.getRawParameterValue(proc_.paramSeed) = static_cast<float>(static_cast<int>(s["seed"]));
+    if (s.hasProperty("density"))
+        *apvts.getRawParameterValue(proc_.paramDensity) = static_cast<float>(s["density"]);
+    if (s.hasProperty("energy"))
+        *apvts.getRawParameterValue(proc_.paramEnergy) = static_cast<float>(s["energy"]);
+    if (s.hasProperty("complexity"))
+        *apvts.getRawParameterValue(proc_.paramComplexity) = static_cast<float>(s["complexity"]);
+    if (s.hasProperty("bpm"))
+        *apvts.getRawParameterValue(proc_.paramBPM) = static_cast<float>(static_cast<int>(s["bpm"]));
+    if (s.hasProperty("bars"))
+        *apvts.getRawParameterValue(proc_.paramBars) = static_cast<float>(static_cast<int>(s["bars"]));
+
+    statusLabel_.setText("Loaded preset: " + name, juce::dontSendNotification);
+    statusLabel_.setColour(juce::Label::textColourId, dimColor);
+}
+
+void AiMidiComposerEditor::onSavePreset() {
+    auto& apvts = proc_.apvts_;
+
+    auto state = juce::ValueTree("Parameters");
+    state.setProperty("seed", static_cast<int>(*apvts.getRawParameterValue(proc_.paramSeed)), nullptr);
+    state.setProperty("density", static_cast<float>(*apvts.getRawParameterValue(proc_.paramDensity)), nullptr);
+    state.setProperty("energy", static_cast<float>(*apvts.getRawParameterValue(proc_.paramEnergy)), nullptr);
+    state.setProperty("complexity", static_cast<float>(*apvts.getRawParameterValue(proc_.paramComplexity)), nullptr);
+    state.setProperty("bpm", static_cast<int>(*apvts.getRawParameterValue(proc_.paramBPM)), nullptr);
+    state.setProperty("bars", static_cast<int>(*apvts.getRawParameterValue(proc_.paramBars)), nullptr);
+
+    juce::String name = "User Preset " + juce::String(presetManager_.getPresetNamesByCategory("User").size() + 1);
+    Preset preset;
+    preset.name = name;
+    preset.category = "User";
+    preset.tags = "user";
+    preset.state = state;
+
+    presetManager_.savePreset(preset);
+    refreshPresetList();
+
+    statusLabel_.setText("Saved " + name, juce::dontSendNotification);
+    statusLabel_.setColour(juce::Label::textColourId, altColor);
+}
+
+void AiMidiComposerEditor::onDeletePreset() {
+    auto name = presetSelector_.getText();
+    if (name.isEmpty() || !presetManager_.hasPreset(name))
+        return;
+
+    auto preset = presetManager_.getPreset(name);
+    if (preset.category != "User") {
+        statusLabel_.setText("Cannot delete factory presets", juce::dontSendNotification);
+        statusLabel_.setColour(juce::Label::textColourId, warnColor);
+        return;
+    }
+
+    presetManager_.deletePreset(name);
+    refreshPresetList();
+
+    statusLabel_.setText("Deleted " + name, juce::dontSendNotification);
+    statusLabel_.setColour(juce::Label::textColourId, dimColor);
 }
 
 // ---------------------------------------------------------------------------

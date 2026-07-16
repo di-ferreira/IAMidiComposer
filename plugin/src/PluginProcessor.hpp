@@ -57,6 +57,17 @@ public:
     const IEngineBridge& engineBridge() const noexcept { return *engine_bridge_; }
     IEngineBridge& engineBridge() noexcept { return *engine_bridge_; }
 
+    // ---- Stable parameter IDs (for DAW automation / preset recall) -------
+    static constexpr const char* paramSeed       = "seed";
+    static constexpr const char* paramDensity    = "density";
+    static constexpr const char* paramEnergy     = "energy";
+    static constexpr const char* paramComplexity = "complexity";
+    static constexpr const char* paramBPM        = "bpm";
+    static constexpr const char* paramBars       = "bars";
+
+    // ---- APVTS -----------------------------------------------------------
+    juce::AudioProcessorValueTreeState apvts_;
+
     // ---- State (ValueTree, serialised by DAW preset) ----------------------
     juce::ValueTree getState() const { return state_; }
     void setState(const juce::ValueTree& state) { state_ = state; }

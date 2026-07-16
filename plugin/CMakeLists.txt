@@ -32,7 +32,9 @@ target_sources(ai_midi_composer PRIVATE
     src/PluginEditor.cpp
     src/PluginEditor.hpp
     src/ui/PianoRollComponent.cpp
-    src/engine/StubEngineBridge.cpp)
+    src/ui/PresetManager.cpp
+    src/engine/StubEngineBridge.cpp
+    src/engine/PluginScanner.cpp)
 
 target_compile_definitions(ai_midi_composer PRIVATE
     JUCE_WEB_BROWSER=0

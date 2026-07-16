@@ -2,6 +2,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "PluginProcessor.hpp"
 #include "ui/PianoRollComponent.hpp"
+#include "ui/PresetManager.hpp"
 
 namespace aimidi::plugin {
 
@@ -29,6 +30,15 @@ private:
     juce::Label       seedLabel_;
     juce::Slider      seedSlider_;
 
+    // Presets
+    juce::ComboBox   presetSelector_;
+    juce::TextButton savePresetButton_{"Save Preset"};
+    juce::TextButton deletePresetButton_{"Delete Preset"};
+    PresetManager    presetManager_;
+
+    // APVTS attachments
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> seedAttachment_;
+
     // History
     juce::ComboBox            historyBox_;
     juce::Array<juce::String> promptHistory_;
@@ -54,9 +64,17 @@ private:
     void addToHistory(const juce::String& prompt);
     void updateHistoryBox();
     void updateWorkflowList();
+
+    // Generation
     void onGenerate();
     void onRegenerate();
     void onDiffToggle();
+
+    // Presets
+    void refreshPresetList();
+    void onPresetSelected();
+    void onSavePreset();
+    void onDeletePreset();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AiMidiComposerEditor)
 };
